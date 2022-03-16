@@ -1,0 +1,6 @@
+10 min, 20 min :)
+
+First goal: get list of raw materials DONE!
+Second goal: get information about method and level (HAR 3)
+Third goal: allow searching on first letter(s), like "cop"
+
