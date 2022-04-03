@@ -1,0 +1,5 @@
+cotton yarn (Weaver 12) [null] 2 produced by 2x cotton boll
+cotton doublet vest of crafting (Weaver 23) [B21] 1 produced by 1x undyed cotton cloth, 1x cotton yarn, 1x hard leather, 1x brass ingot
+dew thread (Weaver 23) [null] 2 produced by 2x diremite web
+undyed velveteen (Weaver 24) [null] 1 produced by 1x cotton yarn, 1x dew thread
+velveteen bandana (Weaver 25) [H23] 1 produced by 3x undyed velveteen, 1x sunrise tellin, 1x bat fang

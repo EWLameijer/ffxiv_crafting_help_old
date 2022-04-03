@@ -1,0 +1,2 @@
+iron pliers (Blacksmith 22) [O21] 1 produced by 1x iron ingot, 1x iron rivets, 1x clove oil
+initiate's awl (Blacksmith 23) [O23] 1 produced by 1x iron ingot, 1x yew lumber, 1x clove oil

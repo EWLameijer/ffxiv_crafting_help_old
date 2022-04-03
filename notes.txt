@@ -1,6 +1,140 @@
-10 min, 20 min :)
+// Category: refactored
+// FileIO: refactored
+// Item: refactored
+// Main: refactored
+// RawMaterial: refactored
+// Recipe: refactored
+// Utils: refactored
 
+
+
+Next phase:
+1 crafted item (like the velveteen bandana) can need multiple of other items, like ingredients.
+velveteen bandana: 3 undyed velveteen 1 sunrise tellin 1 bat fang
+need: 3 dew thread, 4 cotton bolls (=4 yarn) 1 sunrise tellin 1 bat fang
+
+How would I do this manually?
+1) velveteen bandana: 3 undyed velveteen 1 sunrise tellin 1 bat fang
+If I don't have any undyed velveteen:
+undyed velveteen (Weaver 24) [null] 1 produced by 1x cotton yarn, 1x dew thread
+if I don't have any cotton yarn:
+cotton yarn (Weaver 12) [null] 2 produced by 2x cotton boll
+Since I need 3 cotton yarn... that does not go nicely
+So:
+if #produced != 1 {
+    times = #needed/#produced, add times*ingredientcount to needed-list [or update needed-list]
+    overflow = #needed % #produced.
+    if overflow != 0, add overflow item to overflow list
+}
+
+
+Problem:
+A recipe can produce multiple items. What to do if you need 3 cotton yarn and a recipe produces two? You can round up,
+but that leads to overkill if multiple recipes need 3 cotton yarn.
+
+General strategy:
+
+
+
+
+2 and 3 locations
+
+mudstone grinding wheel: el ii ms // mudstone
+
+[sphene earrings (Goldsmith 29) [E29P] 1 produced by 2x sphene, 1x silver ingot]
+null
+[cotton doublet vest of crafting (Weaver 23) [B21] 1 produced by 1x undyed cotton cloth, 1x cotton yarn, 1x hard leather, 1x brass ingot]
+null
+Looking for initiate's awl
+do stuff to obtain recipe
+How many items are produced by this recipe? 1
+Please list the ingredients:  ii yl co
+How many of iron ingot is in your inventory?  1
+How many of yew lumber is in your inventory?  0
+do stuff to obtain recipe
+How many items are produced by this recipe? 1
+Please list the ingredients:  3yg
+Please give the full name of yg yew log
+How many of yew log is in your inventory?  41
+How many of clove oil is in your inventory?  0
+do stuff to obtain recipe
+How many items are produced by this recipe? 3
+Please list the ingredients:  2 cloves
+Please give the full name of
+
+Next goal: handle crab oil: UNKNOWN (vendor) => if user types unknown, add to unknown.txt
+read (and write) unknown.txt at the start
+check wishlist with inventory - if ingredients not in inventory, ask for them.
+
+
+
+20220330 progress:
+have dictionary of abbreviations: el ii 2ms; allow adding to it! So change recipe input.
+have wishlist
+
+
+// 20220327 progress:
+// have introduced inventory, so can now check whether I have stuff that I need for crafting.
+// next step: instead of saying need crafted/gathered item, collect information on the gathered and crafted item
+// (recipes, locations);
+If recipe not known: ask for it
+If location not known: ask for it
+// make wishlist?
+// obstacle: mudstone already had location (: ...) So needed to make special parse for gathering materials
+// next obstacle step: copy parse for crafting materials, then improve/simplify for gathering materials that do not have
+// a usage
+
+
+
+Analysis
+1: save entire recipe => well, ingredients just as name
+OK. 1: allow quitting
+
+
+bone ring: bone chip ragstone whetstone
+ragstone whetstone : 2x ragstone
+
+item always has a name and a level
+It also has some kind of category, either a gathering category or a crafting category
+
+Concrete steps:
+-> analysis: return if it is a raw material or a crafted material
+-> if raw material, how to obtain it (and where?)
+-> if crafted material
+    recipe available? print basic recipe, ask for presence of ingredients
+    recipe unavailable?
+        make it be entered -> decorated bronze barbut (1) 1 bronze barbut 1 copper ingot 1 brass ingot.
+        THEN ask for presence of ingredients
+        if any ingredient not present IN THE REQUIRED QUANTITY,
+
+        /also add option to make wishlist
+
+TODO:
+
+Ideal: type in a crafting recipe (or the start thereof. Just do entire name for now; later starting letters or infix).
+Then get list of materials needed OR: question to enter recipe
+If entering recipe:
+1) how many are produced (often >1 for cooking)
+2) [loop] #items #itemname
+    // if itemname not known, dialogue:
+        -vendor? V or V vendorName (like LTW)
+        -misspelled: respell
+
+
+3) save recipe, as  say 5 @hempen chausses L5 1 2 ing1 1 ing2, so LEVEL @name slot[startswithcapital] #made [ingname #ing]
+    This will mean saving all lines.
+4) then ask #items of each in inventory
+5) if too few, ask for those items [if not raw material] the composition
+
+
+
+
+DONE
 First goal: get list of raw materials DONE!
 Second goal: get information about method and level (HAR 3)
 Third goal: allow searching on first letter(s), like "cop"
+
+@
+2022-03-16: 1 portie eten: 19:56-> discovered bug: bronze barbut H12; so if parsing a crafted item, may need to
+    add a usage (string) => 20:16 (=>LOOSE) => ask for presence of ingredients
 
