@@ -6,6 +6,10 @@
 // Recipe: refactored
 // Utils: refactored
 
+Probleem 2:administratie voelt aan als duplicate work. Maak automatische wishlist uit ruwe data?
+
+velveteen doublet vest of crafting 1uv [0] 1dew thread [3] 1aldgoat leather  [1] 1silver ingot  [2] 1 brimstone [0]
+
 
 
 Next phase:

@@ -46,7 +46,7 @@ fun saveAndExit() {
     mapToFile(inventory, "current_inventory.txt", KeyOrder.KeyLast)
     mapToFile(meaning, "abbreviations.txt", KeyOrder.KeyFirst)
     File("wishlist.txt").writeText(wishList.joinToString("\n"))
-    mapToFile(neededMaterials, "needed.txt", KeyOrder.KeyLast)
+    neededMaterials.saveToFile("needed.txt")
     exitProcess(0)
 }
 

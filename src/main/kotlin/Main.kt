@@ -5,6 +5,7 @@ import Item.CraftedItem
 import Item.Item
 import Item.RawMaterial
 import Item.Recipe
+import kotlin.math.sqrt
 
 val items = mutableListOf<Item>()
 var inventory = mutableMapOf<String, Int>()
@@ -45,7 +46,7 @@ private fun loadWishList() {
     }
 }
 
-private fun search(itemName: String, amount: Int) {
+fun search(itemName: String, amount: Int) {
     if (!inventory.containsKey(itemName)) inventory[itemName] =
         ask("How many of $itemName is in your inventory? ").toInt()
     val neededSoFar = neededMaterials.neededSoFar(itemName)
@@ -70,8 +71,13 @@ private fun handleMaterialShortage(itemName: String, amount: Int) {
             val quantityProduced = recipe.quantityProduced
             if (quantityProduced != 1) {
                 val minTimesToPerformRecipe = amount / quantityProduced
-                recipe.ingredients.forEach { search(it.second, minTimesToPerformRecipe * it.first) }
-
+                if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
+                    search(
+                        it.second,
+                        minTimesToPerformRecipe * it.first
+                    )
+                }
+                // TODO
                 val overflow = amount % quantityProduced
                 if (overflow != 0) neededMaterials.addToOverflowList(overflow, material)
                 //if overflow != 0, add overflow item to overflow list
