@@ -1,4 +1,4 @@
-import Item.CraftedItem
+import item.CraftedItem
 import java.io.File
 
 class NeededMaterialsCatalogue {

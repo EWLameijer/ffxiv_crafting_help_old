@@ -1,6 +1,6 @@
 import java.io.File
 import Category.*
-import Item.CraftedItem
+import item.CraftedItem
 import kotlin.system.exitProcess
 
 fun loadUnknowns() {

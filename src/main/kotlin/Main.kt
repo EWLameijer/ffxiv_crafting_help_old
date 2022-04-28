@@ -1,11 +1,9 @@
 import java.io.File
 
 import Category.*
-import Item.CraftedItem
-import Item.Item
-import Item.RawMaterial
-import Item.Recipe
-import kotlin.math.sqrt
+import item.*
+
+import item.CraftedItem.Companion.Consumable
 
 val items = mutableListOf<Item>()
 var inventory = mutableMapOf<String, Int>()
@@ -97,9 +95,11 @@ fun addRecipeToRecipes(material: CraftedItem) {
 private fun allowUserToSearch(knownItems: List<Item>) {
     var lastSelection = listOf<Item>()
     while (true) {
-        println("Please give a term to search (or the index of an item to create); # to exit:")
+        println("Please give a term to search (or the index of an item to create); ? to get BIS for a class [?CNJ25] # to exit:")
         val soughtMaterial = readln()
         if (soughtMaterial == "#") saveAndExit()
+        if (soughtMaterial.startsWith("?")) findBestInSlot(soughtMaterial.drop(1))
+
         if (soughtMaterial.isNotBlank() && soughtMaterial.all { it.isDigit() }) { // select item by index
             processNumber(soughtMaterial, lastSelection)
         } else {
@@ -108,6 +108,68 @@ private fun allowUserToSearch(knownItems: List<Item>) {
         }
     }
 }
+
+fun findBestInSlot(classAndLevel: String) {
+    if (classAndLevel.all { it.isLowerCase() }) getBestConsumable(classAndLevel)
+    else getBestGear(classAndLevel)
+}
+
+private fun getClassAndLevel(classAndLevel: String): Pair<Job?, Int?> {
+    val (characterClass, levelAsString) = classAndLevel.span { it.isUpperCase() }
+    val chosenClass = Job.values().find { it.abbreviation == characterClass }
+    val level = levelAsString.toIntOrNull()
+    return chosenClass to level
+}
+
+private fun getBestGear(classAndLevel: String) {
+    val (chosenClass, level) = getClassAndLevel(classAndLevel)
+    if (chosenClass == null || level == null || level <= 0) {
+        println("'$classAndLevel' is NOT a valid character class and level combination")
+    } else {
+        val sortedGear = getSuitableGear(level, chosenClass)
+
+        sortedGear.keys.forEach { slot ->
+            sortedGear[slot]!!.sortedByDescending {
+                val gear = it.usage as CraftedItem.Companion.Gear
+                gear.level
+            }.take(3).map(::print)
+            println()
+        }
+    }
+}
+
+private fun getSuitableGear(level: Int, chosenClass: Job): Map<Slot, List<CraftedItem>> {
+    val sortedGear = mutableMapOf<Slot, List<CraftedItem>>()
+
+    items.forEach { item ->
+        if (item is CraftedItem && item.usage is CraftedItem.Companion.Gear) {
+            val gear = item.usage
+            if (gear.isSuitableFor(chosenClass, level)) {
+                val slot = gear.slot
+                if (sortedGear[slot] == null) sortedGear[slot] = listOf()
+                sortedGear[slot] = sortedGear[slot]!! + item
+            }
+        }
+    }
+    return sortedGear
+}
+
+fun getBestConsumable(attributeName: String) {
+    val chosenAttribute = CraftedItem.Companion.Stat.values().find { it.abbreviation == attributeName }
+    if (chosenAttribute == null) {
+        println("'$attributeName' is not a valid stat!")
+        return
+    }
+
+    val consumableList = items.filterIsInstance<CraftedItem>()
+        .filter { it.usage is Consumable && chosenAttribute in it.usage.stats }
+
+    println(consumableList.sortedByDescending {
+        val thisUsage = it.usage as Consumable
+        thisUsage.stats[chosenAttribute]
+    }.take(5))
+}
+
 
 private fun processNumber(soughtMaterial: String, lastSelection: List<Item>) {
     val selectedIndex = soughtMaterial.toInt()
