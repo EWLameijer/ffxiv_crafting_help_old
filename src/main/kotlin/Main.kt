@@ -44,8 +44,7 @@ private fun loadWishList() {
 }
 
 fun search(itemName: String, amount: Int) {
-    if (!inventory.containsKey(itemName)) inventory[itemName] =
-        ask("How many of $itemName is in your inventory? ").toInt()
+    inventory.getOrPut(itemName) { ask("How many of $itemName is in your inventory? ").toInt() }
     val neededSoFar = neededMaterials.neededSoFar(itemName)
     val availableAmount = inventory[itemName]!! - neededSoFar
     println("For $itemName: $amount needed, $availableAmount available, needed for other recipes $neededSoFar")

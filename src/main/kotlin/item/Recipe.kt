@@ -130,7 +130,7 @@ class Recipe(val quantityProduced: Int, val ingredients: List<Pair<Int, String>>
         // TODO
         println("Checking ingredients!")
         ingredients.forEach { (neededAmount, itemName) ->
-            if (inventory.containsKey(itemName) && inventory[itemName]!! >= neededAmount) println("I have enough $itemName!")
+            if (inventory.getOrDefault(itemName, 0) >= neededAmount) println("I have enough $itemName!")
             else {
                 val feedback = when (items.find { it.name == itemName }) {
                     null -> "Vendor item"
