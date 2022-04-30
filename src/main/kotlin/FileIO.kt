@@ -1,6 +1,6 @@
 import java.io.File
 import Category.*
-import item.CraftedItem
+import item.Item
 import kotlin.system.exitProcess
 
 fun loadUnknowns() {
@@ -26,15 +26,7 @@ fun loadItemsWithCounts(filename: String): Map<String, Int> = File(filename).rea
 fun loadRecipes() {
     CraftingCategory.values().forEach { category ->
         val fileName = filenameFromCategory(category)
-        if (File(fileName).exists()) {
-            recipes[category] = File(fileName).readLines().map {
-                val newItem = CraftedItem.parse(it)
-                // replace recipless item by item with correct recipe
-                items.removeIf { it.name == newItem.name }
-                items.add(newItem)
-                newItem
-            }.toMutableList()
-        }
+        if (File(fileName).exists()) recipes += File(fileName).readLines().map { Item.parseFromRecipeFile(it) }
     }
 }
 
@@ -52,10 +44,9 @@ fun saveAndExit() {
 
 private fun saveCraftingRecipes() {
     CraftingCategory.values().forEach { category ->
-        val currentRecipes = recipes[category]
-        if (currentRecipes != null) {
-            val sortedRecipes =
-                currentRecipes.distinctBy { it.name }.sortedWith(compareBy<CraftedItem> { it.level }.thenBy { it.name })
+        val currentRecipes = recipes.filter { it.source.manner == category }
+        if (currentRecipes.isNotEmpty()) {
+            val sortedRecipes = currentRecipes.sortedWith(compareBy<Item> { it.source.level }.thenBy { it.name })
             File(filenameFromCategory(category)).writeText(sortedRecipes.joinToString("\n"))
         }
     }

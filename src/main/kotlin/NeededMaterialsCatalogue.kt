@@ -1,9 +1,8 @@
-import item.CraftedItem
+import item.Crafting
+import item.Item
 import java.io.File
 
 class NeededMaterialsCatalogue {
-
-
     fun neededSoFar(itemName: String): Int {
         if (itemName !in basicMaterials.keys) basicMaterials[itemName] = 0
         return basicMaterials[itemName]!!
@@ -13,7 +12,7 @@ class NeededMaterialsCatalogue {
         basicMaterials[itemName] = basicMaterials[itemName]!! + amount
     }
 
-    fun addToOverflowList(overflow: Int, material: CraftedItem) {
+    fun addToOverflowList(overflow: Int, material: Item) {
         val materialName = material.name
         if (materialName !in overflowList.keys) overflowList[materialName] = 0
         overflowList[materialName] = overflowList[materialName]!! + overflow
@@ -21,8 +20,9 @@ class NeededMaterialsCatalogue {
 
     fun saveToFile(fileName: String) {
         overflowList.forEach { (itemName, neededAmount) ->
-            val item = items.find { it.name == itemName }!! as CraftedItem
-            val recipe = item.recipe
+            val item = items.find { it.name == itemName }!!
+            val source = item.source as Crafting
+            val recipe = source.recipe
             val quantityProduced = recipe!!.quantityProduced
             val minTimesToPerformRecipe = neededAmount / quantityProduced
             if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
