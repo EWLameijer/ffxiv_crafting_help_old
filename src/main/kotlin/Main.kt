@@ -1,6 +1,5 @@
 import java.io.File
 
-import Category.*
 import item.*
 
 typealias ItemName = String
@@ -36,8 +35,8 @@ private fun loadWishList() {
     wishList = File("wishlist.txt").readLines().toMutableList()
     wishList.forEach { itemName ->
         val item = (items.find { it.name == itemName }!!)
-        val itemSource = item.source
-        if (itemSource is Crafting) {
+        if (item is CraftedItem) {
+            val itemSource = item.source
             if (itemSource.recipe == null) {
                 itemSource.recipe = Recipe.obtainFromUser(item.name)
                 recipes += item
@@ -58,37 +57,38 @@ fun search(itemName: String, amount: Int) {
 }
 
 private fun handleMaterialShortage(itemName: String, amount: Int) {
-    val material = items.find { it.name == itemName }
-    when (material?.source?.manner) {
+    when (val material = items.find { it.name == itemName }) {
         null ->
             if (itemName in unknowns) neededMaterials.reserveOf(amount, itemName)
             else throw IllegalArgumentException("bug in search!")
-        is GatheringCategory -> neededMaterials.reserveOf(amount, itemName)
-        is CraftingCategory -> {
-            val source = material.source as Crafting
-            if (source.recipe == null) {
-                source.recipe = Recipe.obtainFromUser(material.name)
-                recipes += material
-            }
-            val recipe = material.source.recipe!!
-            val quantityProduced = recipe.quantityProduced
-            if (quantityProduced != 1) {
-                val minTimesToPerformRecipe = amount / quantityProduced
-                if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
-                    search(
-                        it.second,
-                        minTimesToPerformRecipe * it.first
-                    )
-                }
-                // TODO
-                val overflow = amount % quantityProduced
-                if (overflow != 0) neededMaterials.addToOverflowList(overflow, material)
-                //if overflow != 0, add overflow item to overflow list
-
-                material.source.recipe!!.ingredients.forEach { search(it.second, amount * it.first) }
-            }
-        }
+        is GatheredItem -> neededMaterials.reserveOf(amount, itemName)
+        is CraftedItem -> handleCraftedItemShortage(amount, material)
     }
+}
+
+private fun handleCraftedItemShortage(amount: Int, item: CraftedItem) {
+    val recipe = ensureRecipeExists(item)
+    val quantityProduced = recipe.quantityProduced
+    if (quantityProduced != 1) {
+        val minTimesToPerformRecipe = amount / quantityProduced
+        if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
+            search(it.second, minTimesToPerformRecipe * it.first)
+        }
+        // TODO
+        val overflow = amount % quantityProduced
+        if (overflow != 0) neededMaterials.addToOverflowList(overflow, item)
+        //if overflow != 0, add overflow item to overflow list
+        recipe.ingredients.forEach { search(it.second, amount * it.first) }
+    }
+}
+
+private fun ensureRecipeExists(item: CraftedItem): Recipe {
+    val source = item.source
+    if (source.recipe == null) {
+        source.recipe = Recipe.obtainFromUser(item.name)
+        recipes += item
+    }
+    return source.recipe!!
 }
 
 private fun allowUserToSearch(knownItems: List<Item>) {
@@ -127,9 +127,9 @@ private fun getBestGear(classAndLevel: String) {
     } else {
         val suitableGear =
             items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
-        val prioritizedGear = suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.level }.take(3)}
-        val sortedSlots : List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
-        sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString (", "))}
+        val prioritizedGear = suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.level }.take(3) }
+        val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
+        sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
     }
 }
 

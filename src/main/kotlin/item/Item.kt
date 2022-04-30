@@ -6,7 +6,9 @@ import Job
 import JobRestriction
 import span
 
-abstract class Item(val name: String, val source: Source) {
+abstract class Item(val name: String, open val source: Source) {
+    override fun toString() = "$name ($source)"
+
     companion object {
         // example "initiate's awl (Blacksmith 23) [O23] 1 produced by 1x iron ingot, 1x yew lumber, 1x clove oil"
         fun parseFromRecipeFile(input: String): Item {
@@ -15,8 +17,7 @@ abstract class Item(val name: String, val source: Source) {
             val restStart = nameParts.size // 2
             val category = CraftingCategory.valueOf(items[restStart].drop(1)) // Blacksmith
             val craftingLevel = items[restStart + 1].dropLast(1).toInt() // 23
-            val usage = items[restStart + 2].drop(1).dropLast(1)
-            //val usage = CraftedItem.Companion.Usage.parse() // M23GLA
+            val usage = items[restStart + 2].drop(1).dropLast(1) // M23GLA
             val recipeAsString = items.drop(restStart + 3).joinToString(" ").trim()
             val name = nameParts.joinToString(" ")
 
@@ -41,7 +42,7 @@ abstract class Item(val name: String, val source: Source) {
             return itemWithProperUsage(usage, name, source)
         }
 
-        private fun parseGatheredMaterial(input: String, category: GatheringCategory): Ingredient {
+        private fun parseGatheredMaterial(input: String, category: GatheringCategory): GatheredIngredient {
             val dataWithPossibleLocation = input.split(":")
             val location = if (dataWithPossibleLocation.size == 1) null else dataWithPossibleLocation[1].trim()
             val components = dataWithPossibleLocation[0].trim().split(" ")
@@ -51,22 +52,26 @@ abstract class Item(val name: String, val source: Source) {
 
             val source = Gathering(level, category, location)
 
-            return Ingredient(nameWithAt.drop(1), source)
+            return GatheredIngredient(nameWithAt.drop(1), source)
         }
 
         private fun itemWithProperUsage(usage: String, name: String, source: Crafting) = when {
-            usage == "I" -> Ingredient(name, source)
+            usage == "I" -> CraftedIngredient(name, source)
             Consumable.canParse(usage) -> Consumable.parse(name, source, usage)
             else -> Gear.parse(name, source, usage)
         }
     }
 }
 
-class Ingredient(name: String, source: Source) : Item(name, source) {
-    override fun toString() = "$name ($source)"
-}
+abstract class CraftedItem(name: String, override val source: Crafting) : Item (name, source)
 
-abstract class StatsProvidingItem(name: String, source: Source, val stats: Map<Stat, Int>) : Item(name, source) {
+abstract class GatheredItem(name: String, override val source: Gathering) : Item (name, source)
+
+class CraftedIngredient(name: String, source: Crafting) : CraftedItem(name, source)
+
+class GatheredIngredient(name: String, source: Gathering) : GatheredItem(name, source)
+
+abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map<Stat, Int>) : CraftedItem(name, source) {
     protected fun statsToString() = stats.toList().joinToString(", ") { (stat, size) -> "$stat: $size" }
 
     companion object {
@@ -99,7 +104,7 @@ abstract class StatsProvidingItem(name: String, source: Source, val stats: Map<S
     }
 }
 
-class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsProvidingItem(name, source, stats) {
+class Consumable(name: String, source: Crafting, stats: Map<Stat, Int>) : StatsProvidingItem(name, source, stats) {
     override fun toString() = "$name C${statsToString()}"
 
     companion object {
@@ -109,7 +114,7 @@ class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsPro
             return canParseStats(input.substring(1))
         }
 
-        fun parse(name: String, source: Source, usageAsString: String): Consumable {
+        fun parse(name: String, source: Crafting, usageAsString: String): Consumable {
             val stats = statsParser(usageAsString.drop(1)).toMap()
             return Consumable(name, source, stats)
         }
@@ -118,7 +123,7 @@ class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsPro
 
 class Gear(
     name: String, val slot: Slot, val level: Int, private val jobRestriction: JobRestriction,
-    source: Source, stats: Map<Stat, Int>
+    source: Crafting, stats: Map<Stat, Int>
 ) : StatsProvidingItem(name, source, stats) {
 
     override fun toString(): String {
@@ -140,8 +145,7 @@ class Gear(
         private val jobRestrictionAbbreviations = JobRestriction.values().map { it.abbreviation }
 
         // M5ARCd1
-        fun parse(name: String, source: Source, usage: String): Gear {
-            println("Parse with input '$usage'")
+        fun parse(name: String, source: Crafting, usage: String): Gear {
             require(
                 usage.length >= 2 && usage[0] in slotAbbreviations && usage[1].isDigit() &&
                         canParseLastPart(usage)
