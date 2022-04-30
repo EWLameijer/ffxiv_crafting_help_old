@@ -36,12 +36,9 @@ private fun loadWishList() {
     wishList.forEach { itemName ->
         val item = (items.find { it.name == itemName }!!)
         if (item is CraftedItem) {
-            val itemSource = item.source
-            if (itemSource.recipe == null) {
-                itemSource.recipe = Recipe.obtainFromUser(item.name)
-                recipes += item
-            }
-            itemSource.recipe!!.ingredients.forEach { search(it.second, it.first) }
+            val recipe = item.ensureRecipeExists()
+            recipes += item
+            recipe.ingredients.forEach { search(it.second, it.first) }
         }
     }
 }
@@ -67,7 +64,8 @@ private fun handleMaterialShortage(itemName: String, amount: Int) {
 }
 
 private fun handleCraftedItemShortage(amount: Int, item: CraftedItem) {
-    val recipe = ensureRecipeExists(item)
+    val recipe = item.ensureRecipeExists()
+    recipes += item
     val quantityProduced = recipe.quantityProduced
     if (quantityProduced != 1) {
         val minTimesToPerformRecipe = amount / quantityProduced
@@ -80,15 +78,6 @@ private fun handleCraftedItemShortage(amount: Int, item: CraftedItem) {
         //if overflow != 0, add overflow item to overflow list
         recipe.ingredients.forEach { search(it.second, amount * it.first) }
     }
-}
-
-private fun ensureRecipeExists(item: CraftedItem): Recipe {
-    val source = item.source
-    if (source.recipe == null) {
-        source.recipe = Recipe.obtainFromUser(item.name)
-        recipes += item
-    }
-    return source.recipe!!
 }
 
 private fun allowUserToSearch(knownItems: List<Item>) {

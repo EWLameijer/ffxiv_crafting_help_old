@@ -1,3 +1,4 @@
+import item.CraftedItem
 import item.Crafting
 import item.Item
 import java.io.File
@@ -21,15 +22,11 @@ class NeededMaterialsCatalogue {
     fun saveToFile(fileName: String) {
         overflowList.forEach { (itemName, neededAmount) ->
             val item = items.find { it.name == itemName }!!
-            val source = item.source as Crafting
-            val recipe = source.recipe
+            val recipe = (item as CraftedItem).recipe
             val quantityProduced = recipe!!.quantityProduced
             val minTimesToPerformRecipe = neededAmount / quantityProduced
             if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
-                search(
-                    it.second,
-                    minTimesToPerformRecipe * it.first
-                )
+                search(it.second, minTimesToPerformRecipe * it.first)
             }
             // TODO
             val remainingAmount = neededAmount % quantityProduced

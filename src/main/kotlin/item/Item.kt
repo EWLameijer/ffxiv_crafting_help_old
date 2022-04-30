@@ -30,6 +30,7 @@ abstract class Item(val name: String, open val source: Source) {
             is GatheringCategory -> parseGatheredMaterial(input, currentCategory)
             is CraftingCategory -> parseFromMasterFile(input, currentCategory)
         }
+
         // 34 @steel doming hammer M34ARM
         private fun parseFromMasterFile(input: String, category: CraftingCategory): Item {
             val components = input.trim().split(" ")
@@ -63,15 +64,27 @@ abstract class Item(val name: String, open val source: Source) {
     }
 }
 
-abstract class CraftedItem(name: String, override val source: Crafting) : Item (name, source)
+abstract class CraftedItem(name: String, override val source: Crafting) : Item(name, source) {
+    var recipe: Recipe?
+        get() = source.recipe
+        set(value) {
+            source.recipe = value
+        }
 
-abstract class GatheredItem(name: String, override val source: Gathering) : Item (name, source)
+    fun ensureRecipeExists(): Recipe {
+        if (recipe == null) recipe = Recipe.obtainFromUser(name)
+        return recipe!!
+    }
+}
+
+abstract class GatheredItem(name: String, override val source: Gathering) : Item(name, source)
 
 class CraftedIngredient(name: String, source: Crafting) : CraftedItem(name, source)
 
 class GatheredIngredient(name: String, source: Gathering) : GatheredItem(name, source)
 
-abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map<Stat, Int>) : CraftedItem(name, source) {
+abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map<Stat, Int>) :
+    CraftedItem(name, source) {
     protected fun statsToString() = stats.toList().joinToString(", ") { (stat, size) -> "$stat: $size" }
 
     companion object {
