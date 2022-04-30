@@ -21,6 +21,11 @@ class Gathering(level: Int, manner: GatheringCategory, val location: String?) : 
 class Crafting(level: Int, manner: CraftingCategory, var recipe: Recipe?) : Source(level, manner) {
     override val typeString = "crafted item"
 
+    fun recipe(itemName: String) : Recipe {
+        if (recipe == null) recipe = Recipe.obtainFromUser(itemName)
+        return recipe!!
+    }
+
     override fun analyze(item: Item) {
         if (recipe != null) println(recipe)
         else {

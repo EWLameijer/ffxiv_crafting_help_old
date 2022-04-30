@@ -22,8 +22,8 @@ class NeededMaterialsCatalogue {
     fun saveToFile(fileName: String) {
         overflowList.forEach { (itemName, neededAmount) ->
             val item = items.find { it.name == itemName }!!
-            val recipe = (item as CraftedItem).recipe
-            val quantityProduced = recipe!!.quantityProduced
+            val recipe = (item as CraftedItem).recipe()
+            val quantityProduced = recipe.quantityProduced
             val minTimesToPerformRecipe = neededAmount / quantityProduced
             if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
                 search(it.second, minTimesToPerformRecipe * it.first)
@@ -35,7 +35,6 @@ class NeededMaterialsCatalogue {
         }
 
         File(fileName).writeText(basicMaterials.map { (k, v) -> "$v $k" }.joinToString("\n"))
-
     }
 
     private val overflowList = mutableMapOf<String, Int>()

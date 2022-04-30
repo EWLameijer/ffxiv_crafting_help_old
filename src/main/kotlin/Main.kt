@@ -36,7 +36,7 @@ private fun loadWishList() {
     wishList.forEach { itemName ->
         val item = (items.find { it.name == itemName }!!)
         if (item is CraftedItem) {
-            val recipe = item.ensureRecipeExists()
+            val recipe = item.recipe()
             recipes += item
             recipe.ingredients.forEach { search(it.second, it.first) }
         }
@@ -64,7 +64,7 @@ private fun handleMaterialShortage(itemName: String, amount: Int) {
 }
 
 private fun handleCraftedItemShortage(amount: Int, item: CraftedItem) {
-    val recipe = item.ensureRecipeExists()
+    val recipe = item.recipe()
     recipes += item
     val quantityProduced = recipe.quantityProduced
     if (quantityProduced != 1) {

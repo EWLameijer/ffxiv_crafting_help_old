@@ -65,16 +65,7 @@ abstract class Item(val name: String, open val source: Source) {
 }
 
 abstract class CraftedItem(name: String, override val source: Crafting) : Item(name, source) {
-    var recipe: Recipe?
-        get() = source.recipe
-        set(value) {
-            source.recipe = value
-        }
-
-    fun ensureRecipeExists(): Recipe {
-        if (recipe == null) recipe = Recipe.obtainFromUser(name)
-        return recipe!!
-    }
+    fun recipe(): Recipe = source.recipe(name)
 }
 
 abstract class GatheredItem(name: String, override val source: Gathering) : Item(name, source)
