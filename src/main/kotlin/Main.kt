@@ -2,7 +2,13 @@ import java.io.File
 
 import item.*
 
+
+import item.Slot.*
+
 typealias ItemName = String
+
+
+val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val items = mutableListOf<Item>()
 var inventory = mutableMapOf<ItemName, Int>()
@@ -115,7 +121,8 @@ private fun getBestGear(classAndLevel: String) {
     } else {
         val suitableGear =
             items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
-        val prioritizedGear = suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.level }.take(3) }
+
+        val prioritizedGear = suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
         val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
         sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
     }
@@ -155,11 +162,27 @@ private fun categorizeMaterials(lines: List<String>): List<Item> {
             '#' -> currentCategory = categoryFrom(line.substring(1).trim())
             '-' -> continue
             else -> {
-                rawMaterials += Item.parse(line, currentCategory!!)
+                val newItem = Item.parse(line, currentCategory!!)
+                println(newItem)
+                sanityCheck(newItem)
+                rawMaterials += newItem
             }
         }
     }
     return rawMaterials
 }
+
+fun sanityCheck(newItem: Item) {
+    if (newItem is Gear) {
+        val gearStats = newItem.stats.keys
+        val dowRestriction = setOf(JobRestriction.Plate, JobRestriction.Mail, JobRestriction.Leather)
+        if (newItem.jobRestriction in dowRestriction && (newItem.slot !in armorSlots ||
+                    (Stat.Intelligence in gearStats || Stat.Mind in gearStats) || Stat.Defense !in gearStats)
+        )
+            throw Exception("Item $newItem has unexpected (incorrect?) stats.")
+    }
+}
+
+
 
 

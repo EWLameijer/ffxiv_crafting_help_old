@@ -4,6 +4,7 @@ import Category
 import Category.*
 import Job
 import JobRestriction
+import item.Stat.*
 import span
 
 abstract class Item(val name: String, open val source: Source) {
@@ -125,8 +126,23 @@ class Consumable(name: String, source: Crafting, stats: Map<Stat, Int>) : StatsP
     }
 }
 
+class GearScore(
+    private val statsScore: Int,
+    private val vitality: Int,
+    private val defense: Int,
+    private val level: Int
+) : Comparable<GearScore> {
+    override operator fun compareTo(other: GearScore): Int = when {
+        statsScore != other.statsScore -> statsScore - other.statsScore
+        vitality != other.vitality -> vitality - other.vitality
+        defense != other.defense -> defense - other.defense
+        level != other.level -> level - other.level
+        else -> 0
+    }
+}
+
 class Gear(
-    name: String, val slot: Slot, val level: Int, private val jobRestriction: JobRestriction,
+    name: String, val slot: Slot, val level: Int, val jobRestriction: JobRestriction,
     source: Crafting, stats: Map<Stat, Int>
 ) : StatsProvidingItem(name, source, stats) {
 
@@ -143,6 +159,18 @@ class Gear(
             .flatMap { it.jobs }.toSet() + if (jobRestriction.jobs.size == 1) jobRestriction.jobs else setOf()
 
     private fun getPermittedJobs(): Set<Job> = jobRestriction.jobs
+
+    private fun getStat(stat: Stat) = stats[stat] ?: 0
+
+    // note: need to sort on gear stats, not level, else
+    // goatskin leggings (Level 17, Defense: 33, MagicDefense: 33, Strength: 2, Dexterity: 2, Vitality: 2, SkillSpeed: 2)
+    // may wind up before
+    // cotton trousers (Level 17, Defense: 44, MagicDefense: 44, Strength: 3, Dexterity: 3, Vitality: 3, SkillSpeed: 3)
+    fun scoreFor(chosenClass: Job): GearScore {
+        val correctCategories = JobRecommendation.values().filter { chosenClass in it.jobs && it.isPrimaryStat }
+        val statsScore = correctCategories.flatMap { it.usefulStats }.sumOf(::getStat)
+        return GearScore(statsScore, getStat(Vitality), getStat(Defense), level)
+    }
 
     companion object {
         private val slotAbbreviations = Slot.values().map { it.abbreviation }
@@ -192,8 +220,8 @@ class Gear(
             val currentStats = mutableMapOf<Stat, Int>()
             if (armorString != "") {
                 val armor = armorString.toInt()
-                currentStats[Stat.Defense] = armor
-                currentStats[Stat.MagicDefense] = armor
+                currentStats[Defense] = armor
+                currentStats[MagicDefense] = armor
             }
             statsParser(rest).forEach { currentStats[it.first] = it.second }
             return classRestriction to currentStats

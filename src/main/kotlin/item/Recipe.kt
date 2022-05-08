@@ -139,7 +139,6 @@ class Recipe(val quantityProduced: Int, val ingredients: List<Pair<Int, String>>
                 }
                 println(feedback)
             }
-
         }
     }
 }

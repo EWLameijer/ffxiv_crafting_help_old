@@ -1,5 +1,4 @@
 package item
-
 /*
 A=hands / 	All (BLM/WHM/PAL)
 Body	  	Black (shield: THM+PAL)
@@ -30,3 +29,4 @@ enum class Slot(val abbreviation: Char) {
     Head('H'), Legs('L'), MainHand('M'), Neck('N'),
     OffHand('O'), Ring('R'), Stockings('S'), TwoHand('T'), Wrists('W')
 }
+

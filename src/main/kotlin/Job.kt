@@ -10,20 +10,22 @@ enum class Job(val abbreviation: String) {
 }
 
 // on basis of stats
-enum class JobRecommendation(val jobs: Set<Job>, val usefulStats: Set<Stat>) {
+enum class JobRecommendation(val jobs: Set<Job>, val usefulStats: Set<Stat>, val isPrimaryStat: Boolean) {
     Crafter(
         setOf(
             Job.Alchemist, Job.Armorer, Job.Blacksmith, Job.Carpenter, Job.Culinarian, Job.Goldsmith,
             Job.Leatherworker, Job.Weaver
-        ), setOf(Stat.Control, Stat.CP, Stat.Craftmanship)
+        ), setOf(Stat.Control, Stat.CP, Stat.Craftmanship),
+        true
     ),
-    Gatherer(setOf(Job.Botanist, Job.Fisher, Job.Miner), setOf(Stat.Perception, Stat.GP, Stat.Gathering)),
-    Healer(setOf(Job.Scholar, Job.Conjurer, Job.Astrologian), setOf(Stat.Piety, Stat.Mind)),
-    Caster(setOf(Job.Arcanist, Job.Thaumaturge), setOf(Stat.Intelligence)),
-    Dexterous(setOf(Job.Archer, Job.Rogue), setOf(Stat.Dexterity)),
-    Strong(JobRestriction.Mail.jobs + setOf(Job.Pugilist), setOf(Stat.Strength)),
-    Adventurer(Healer.jobs + Caster.jobs + Dexterous.jobs + Strong.jobs, setOf(Stat.Vitality, Stat.Defense)),
-    All(Crafter.jobs + Gatherer.jobs + Adventurer.jobs, setOf())
+    Gatherer(setOf(Job.Botanist, Job.Fisher, Job.Miner), setOf(Stat.Perception, Stat.GP, Stat.Gathering), true),
+    Healer(setOf(Job.Scholar, Job.Conjurer, Job.Astrologian), setOf(Stat.Piety, Stat.Mind), true),
+    Caster(setOf(Job.Arcanist, Job.Thaumaturge), setOf(Stat.Intelligence), true),
+    Dexterous(setOf(Job.Archer, Job.Rogue), setOf(Stat.Dexterity), true),
+    Strong(JobRestriction.Mail.jobs + setOf(Job.Pugilist), setOf(Stat.Strength), true),
+    Tank(JobRestriction.Plate.jobs, setOf(Stat.Tenacity, Stat.Defense), true),
+    Adventurer(Healer.jobs + Caster.jobs + Dexterous.jobs + Strong.jobs, setOf(Stat.Defense, Stat.Vitality), false),
+    All(Crafter.jobs + Gatherer.jobs + Adventurer.jobs, setOf(), false)
 }
 
 enum class JobRestriction(val abbreviation: String, val jobs: Set<Job>) {

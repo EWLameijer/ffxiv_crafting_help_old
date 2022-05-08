@@ -2,7 +2,9 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.6.10"
+    id("org.sonarqube") version "3.3"
     application
+
 }
 
 group = "me.lalashops"
