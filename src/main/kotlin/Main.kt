@@ -1,22 +1,11 @@
 import java.io.File
-
 import item.*
-
-
 import item.Slot.*
-
-typealias ItemName = String
-
+import kotlin.system.exitProcess
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val items = mutableListOf<Item>()
-var inventory = mutableMapOf<ItemName, Int>()
-var meaning = mutableMapOf<ItemName, String>() // for abbreviations
-var wishList = mutableListOf<ItemName>()
-var neededMaterials = NeededMaterialsCatalogue()
-val recipes = mutableSetOf<Item>()
-val unknowns = mutableListOf<ItemName>()
 
 fun main() {
     val lines = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
@@ -25,72 +14,16 @@ fun main() {
     items += categorizeMaterials(categoriesWithRawMaterials)
     items.forEach(::println)
 
-    loadUnknowns()
-    loadRecipes()
-    inventory = loadItemsWithCounts("current_inventory.txt").toMutableMap()
-
-    meaning = loadAbbreviations().toMutableMap()
-    loadWishList()
-
     allowUserToSearch(items)
 }
 
-//example: iron ornamental hammer = initiate's chaser hammer iv ai
-
-private fun loadWishList() {
-    wishList = File("wishlist.txt").readLines().toMutableList()
-    wishList.forEach { itemName ->
-        val item = (items.find { it.name == itemName }!!)
-        if (item is CraftedItem) {
-            val recipe = item.recipe()
-            recipes += item
-            recipe.ingredients.forEach { search(it.second, it.first) }
-        }
-    }
-}
-
-fun search(itemName: String, amount: Int) {
-    inventory.getOrPut(itemName) { ask("How many of $itemName is in your inventory? ").toInt() }
-    val neededSoFar = neededMaterials.neededSoFar(itemName)
-    val availableAmount = inventory[itemName]!! - neededSoFar
-    println("For $itemName: $amount needed, $availableAmount available, needed for other recipes $neededSoFar")
-    if (amount <= availableAmount) neededMaterials.reserveOf(amount, itemName)
-    else handleMaterialShortage(itemName, amount)
-}
-
-private fun handleMaterialShortage(itemName: String, amount: Int) {
-    when (val material = items.find { it.name == itemName }) {
-        null ->
-            if (itemName in unknowns) neededMaterials.reserveOf(amount, itemName)
-            else throw IllegalArgumentException("bug in search!")
-        is GatheredItem -> neededMaterials.reserveOf(amount, itemName)
-        is CraftedItem -> handleCraftedItemShortage(amount, material)
-    }
-}
-
-private fun handleCraftedItemShortage(amount: Int, item: CraftedItem) {
-    val recipe = item.recipe()
-    recipes += item
-    val quantityProduced = recipe.quantityProduced
-    if (quantityProduced != 1) {
-        val minTimesToPerformRecipe = amount / quantityProduced
-        if (minTimesToPerformRecipe != 0) recipe.ingredients.forEach {
-            search(it.second, minTimesToPerformRecipe * it.first)
-        }
-        // TODO
-        val overflow = amount % quantityProduced
-        if (overflow != 0) neededMaterials.addToOverflowList(overflow, item)
-        //if overflow != 0, add overflow item to overflow list
-        recipe.ingredients.forEach { search(it.second, amount * it.first) }
-    }
-}
 
 private fun allowUserToSearch(knownItems: List<Item>) {
     var lastSelection = listOf<Item>()
     while (true) {
         println("Please give a term to search (or the index of an item to create); ? to get BIS for a class [?CNJ25] # to exit:")
         val soughtMaterial = readln()
-        if (soughtMaterial == "#") saveAndExit()
+        if (soughtMaterial == "#") exitProcess(0)
         if (soughtMaterial.startsWith("?")) findBestInSlot(soughtMaterial.drop(1))
 
         if (soughtMaterial.isNotBlank() && soughtMaterial.all { it.isDigit() }) { // select item by index
@@ -122,7 +55,8 @@ private fun getBestGear(classAndLevel: String) {
         val suitableGear =
             items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
 
-        val prioritizedGear = suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
+        val prioritizedGear =
+            suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
         val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
         sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
     }
@@ -149,10 +83,8 @@ private fun processNumber(soughtMaterial: String, lastSelection: List<Item>) {
     }
 }
 
-private fun analyzeItem(soughtMaterial: Item) {
-    println("${soughtMaterial.name}: ${soughtMaterial.source.describe()}")
-    soughtMaterial.source.analyze(soughtMaterial)
-}
+private fun analyzeItem(soughtMaterial: Item) = println("${soughtMaterial.name}: ${soughtMaterial.source.describe()}")
+
 
 private fun categorizeMaterials(lines: List<String>): List<Item> {
     var currentCategory: Category? = null

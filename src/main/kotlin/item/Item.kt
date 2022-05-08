@@ -11,22 +11,6 @@ abstract class Item(val name: String, open val source: Source) {
     override fun toString() = "$name ($source)"
 
     companion object {
-        // example "initiate's awl (Blacksmith 23) [O23] 1 produced by 1x iron ingot, 1x yew lumber, 1x clove oil"
-        fun parseFromRecipeFile(input: String): Item {
-            val items = input.split(' ')
-            val nameParts = items.takeWhile { it[0] != '(' } // initiate's awl
-            val restStart = nameParts.size // 2
-            val category = CraftingCategory.valueOf(items[restStart].drop(1)) // Blacksmith
-            val craftingLevel = items[restStart + 1].dropLast(1).toInt() // 23
-            val usage = items[restStart + 2].drop(1).dropLast(1) // M23GLA
-            val recipeAsString = items.drop(restStart + 3).joinToString(" ").trim()
-            val name = nameParts.joinToString(" ")
-
-            val recipe = Recipe.parse(recipeAsString)
-            val source = Crafting(craftingLevel, category, recipe)
-            return itemWithProperUsage(usage, name, source)
-        }
-
         fun parse(input: String, currentCategory: Category) = when (currentCategory) {
             is GatheringCategory -> parseGatheredMaterial(input, currentCategory)
             is CraftingCategory -> parseFromMasterFile(input, currentCategory)
@@ -40,7 +24,7 @@ abstract class Item(val name: String, open val source: Source) {
             val (nameWithAt, usage) = furtherComponents.dropLast(1).joinToString(" ").trim() to
                     furtherComponents.last().trim()
             val name = nameWithAt.drop(1)
-            val source = Crafting(level, category, null)
+            val source = Crafting(level, category)
             return itemWithProperUsage(usage, name, source)
         }
 
@@ -52,7 +36,7 @@ abstract class Item(val name: String, open val source: Source) {
             val furtherComponents = components.drop(1)
             val nameWithAt = furtherComponents.joinToString(" ").trim()
 
-            val source = Gathering(level, category, location)
+            val source = Gathering(level, category)
 
             return GatheredIngredient(nameWithAt.drop(1), source)
         }
@@ -65,9 +49,7 @@ abstract class Item(val name: String, open val source: Source) {
     }
 }
 
-abstract class CraftedItem(name: String, override val source: Crafting) : Item(name, source) {
-    fun recipe(): Recipe = source.recipe(name)
-}
+abstract class CraftedItem(name: String, override val source: Crafting) : Item(name, source)
 
 abstract class GatheredItem(name: String, override val source: Gathering) : Item(name, source)
 
