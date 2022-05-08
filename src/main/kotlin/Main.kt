@@ -14,24 +14,17 @@ fun main() {
     items += categorizeMaterials(categoriesWithRawMaterials)
     items.forEach(::println)
 
-    allowUserToSearch(items)
+    allowUserToSearch()
 }
 
 
-private fun allowUserToSearch(knownItems: List<Item>) {
-    var lastSelection = listOf<Item>()
+private fun allowUserToSearch() {
     while (true) {
-        println("Please give a term to search (or the index of an item to create); ? to get BIS for a class [?CNJ25] # to exit:")
+        println("? to get BIS for a class [?CNJ25] # to exit:")
         val soughtMaterial = readln()
         if (soughtMaterial == "#") exitProcess(0)
         if (soughtMaterial.startsWith("?")) findBestInSlot(soughtMaterial.drop(1))
-
-        if (soughtMaterial.isNotBlank() && soughtMaterial.all { it.isDigit() }) { // select item by index
-            processNumber(soughtMaterial, lastSelection)
-        } else {
-            lastSelection = knownItems.filter { it.name.contains(soughtMaterial) }
-            lastSelection.forEachIndexed { index, material -> println("${index + 1}. $material") }
-        }
+        else println("'$soughtMaterial' is an unsupported input. Please try again.")
     }
 }
 
@@ -72,19 +65,6 @@ fun getBestConsumable(attributeName: String) {
     val consumableList = items.filterIsInstance<Consumable>().filter { chosenAttribute in it.stats }
     println(consumableList.sortedByDescending { it.stats[chosenAttribute] }.take(5).joinToString(", "))
 }
-
-private fun processNumber(soughtMaterial: String, lastSelection: List<Item>) {
-    val selectedIndex = soughtMaterial.toInt()
-    if (selectedIndex in 1..lastSelection.size) analyzeItem(lastSelection[selectedIndex - 1])
-    else {
-        val reason =
-            if (lastSelection.isEmpty()) "there are no hits" else "it is outside the allowed range of 1..${lastSelection.size}"
-        println("Index $selectedIndex is invalid, as $reason.")
-    }
-}
-
-private fun analyzeItem(soughtMaterial: Item) = println("${soughtMaterial.name}: ${soughtMaterial.source.describe()}")
-
 
 private fun categorizeMaterials(lines: List<String>): List<Item> {
     var currentCategory: Category? = null

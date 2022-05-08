@@ -30,7 +30,6 @@ abstract class Item(val name: String, open val source: Source) {
 
         private fun parseGatheredMaterial(input: String, category: GatheringCategory): GatheredIngredient {
             val dataWithPossibleLocation = input.split(":")
-            val location = if (dataWithPossibleLocation.size == 1) null else dataWithPossibleLocation[1].trim()
             val components = dataWithPossibleLocation[0].trim().split(" ")
             val level = components[0].toInt()
             val furtherComponents = components.drop(1)
