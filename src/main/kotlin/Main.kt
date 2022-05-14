@@ -20,7 +20,6 @@ private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
 fun main() {
     val lines = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
     val categoriesWithRawMaterials = lines.dropWhile { it != "#CRP" }.takeWhile { it != "$$" }
-    // TODO: make it possible too to look up vendored items like beast sinew
 
     items += categorizeMaterials(categoriesWithRawMaterials)
     items.forEach(::println)
