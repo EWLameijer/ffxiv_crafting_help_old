@@ -6,17 +6,74 @@ import kotlin.system.exitProcess
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val items = mutableListOf<Item>()
+val jobLevels = File("levels.txt").readLines().map(::jobToLevel)
+val knownGear = mutableMapOf<Item, Boolean>()
+
+private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
+    val (jobStr, levelStr) = jobLevelAbbreviation.span { it.isUpperCase() }
+    val job = Job.values().find { it.abbreviation == jobStr }
+    val level = levelStr.toIntOrNull()
+    require(job != null && level != null && level in 1..90) { "'$jobLevelAbbreviation' is illegal!" }
+    return job to level
+}
 
 fun main() {
     val lines = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
     val categoriesWithRawMaterials = lines.dropWhile { it != "#CRP" }.takeWhile { it != "$$" }
+    // TODO: make it possible too to look up vendored items like beast sinew
 
     items += categorizeMaterials(categoriesWithRawMaterials)
     items.forEach(::println)
 
+    knownGear += loadRelevantGear("wishlist.txt", false)
+    knownGear += loadRelevantGear("have.txt", true)
+
+    checkUsefulGear()
+
+    knownGear.forEach { (item, have) -> println("$item => $have") }
+    saveList("wishlist.txt", false)
+    saveList("have.txt", true)
     allowUserToSearch()
 }
 
+private fun checkUsefulGear() {
+    for ((job, currentLevel) in jobLevels) { // loop over jobs
+        val prioritizedGear = getPrioritizedGear(job, currentLevel + 1)
+        for (gearListForSlot in prioritizedGear.values) { // loop over gearslots for each job
+            checkGearForSlot(gearListForSlot, currentLevel)
+        }
+    }
+}
+
+private fun checkGearForSlot(gearList: List<Gear>, currentLevel: Int) {
+    val oneItemPerLevelList = gearList.distinctBy { it.level }
+    val (futureGear, currentGear) = oneItemPerLevelList.span { it.level > currentLevel }
+
+    if (futureGear.isNotEmpty() && futureGear[0] !in knownGear.keys) registerItemPossession(futureGear[0])
+
+    for (item in currentGear) {
+        if (item !in knownGear.keys) registerItemPossession(item)
+        if (knownGear[item]!!) break
+    }
+}
+
+private fun registerItemPossession(item: Gear) {
+    println(item)
+    var answer = ""
+    while (answer != "h" && answer != "w") {
+        println("have(h) or wish(w)?")
+        answer = readln()
+    }
+    knownGear[item] = (answer == "h")
+}
+
+private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
+    File(fileName).readLines().associate { itemName -> items.find { it.name == itemName }!! to haveItem }
+
+private fun saveList(fileName: String, haveItem: Boolean) {
+    val itemsToSave = knownGear.filterValues { it == haveItem }.keys.map { it.name }.sorted().joinToString("\n")
+    File(fileName).writeText(itemsToSave)
+}
 
 private fun allowUserToSearch() {
     while (true) {
@@ -33,26 +90,20 @@ fun findBestInSlot(classAndLevel: String) {
     else getBestGear(classAndLevel)
 }
 
-private fun getClassAndLevel(classAndLevel: String): Pair<Job?, Int?> {
-    val (characterClass, levelAsString) = classAndLevel.span { it.isUpperCase() }
-    val chosenClass = Job.values().find { it.abbreviation == characterClass }
-    val level = levelAsString.toIntOrNull()
-    return chosenClass to level
+private fun getBestGear(jobAndLevel: String) {
+    val (chosenClass, level) = jobToLevel(jobAndLevel)
+    val prioritizedGear = getPrioritizedGear(chosenClass, level)
+    val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
+    sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
 }
 
-private fun getBestGear(classAndLevel: String) {
-    val (chosenClass, level) = getClassAndLevel(classAndLevel)
-    if (chosenClass == null || level == null || level <= 0) {
-        println("'$classAndLevel' is NOT a valid character class and level combination")
-    } else {
-        val suitableGear =
-            items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
-
-        val prioritizedGear =
-            suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
-        val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
-        sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
-    }
+private fun getPrioritizedGear(
+    chosenClass: Job,
+    level: Int
+): Map<Slot, List<Gear>> {
+    val suitableGear =
+        items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
+    return suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
 }
 
 fun getBestConsumable(attributeName: String) {
@@ -92,9 +143,11 @@ fun sanityCheck(newItem: Item) {
                     (Stat.Intelligence in gearStats || Stat.Mind in gearStats) || Stat.Defense !in gearStats)
         )
             throw Exception("Item $newItem has unexpected (incorrect?) stats.")
+        if ((newItem.slot == MainHand || newItem.slot == TwoHand) && newItem.jobRestriction.jobs.size != 1) {
+            throw Exception("Item $newItem has unexpected (incorrect?) stats.")
+        }
     }
 }
-
 
 
 

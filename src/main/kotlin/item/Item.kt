@@ -91,7 +91,7 @@ abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map
 }
 
 class Consumable(name: String, source: Crafting, stats: Map<Stat, Int>) : StatsProvidingItem(name, source, stats) {
-    override fun toString() = "$name C${statsToString()}"
+    override fun toString() = "$name (${statsToString()})"
 
     companion object {
         fun canParse(input: String): Boolean {
@@ -111,13 +111,15 @@ class GearScore(
     private val statsScore: Int,
     private val vitality: Int,
     private val defense: Int,
-    private val level: Int
+    private val level: Int,
+    private val restriction: Int
 ) : Comparable<GearScore> {
     override operator fun compareTo(other: GearScore): Int = when {
         statsScore != other.statsScore -> statsScore - other.statsScore
-        vitality != other.vitality -> vitality - other.vitality
         defense != other.defense -> defense - other.defense
+        vitality != other.vitality -> vitality - other.vitality
         level != other.level -> level - other.level
+        restriction != other.restriction -> restriction - other.restriction
         else -> 0
     }
 }
@@ -150,8 +152,10 @@ class Gear(
     fun scoreFor(chosenClass: Job): GearScore {
         val correctCategories = JobRecommendation.values().filter { chosenClass in it.jobs && it.isPrimaryStat }
         val statsScore = correctCategories.flatMap { it.usefulStats }.sumOf(::getStat)
-        return GearScore(statsScore, getStat(Vitality), getStat(Defense), level)
+        return GearScore(statsScore, getStat(Vitality), getStat(Defense), level, restrictionScore())
     }
+
+    private fun restrictionScore() = -jobRestriction.jobs.size // the more restricted, the better
 
     companion object {
         private val slotAbbreviations = Slot.values().map { it.abbreviation }
