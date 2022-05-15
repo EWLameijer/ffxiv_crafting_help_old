@@ -48,15 +48,16 @@ private fun checkGearForSlot(gearList: List<Gear>, currentLevel: Int) {
     val oneItemPerLevelList = gearList.distinctBy { it.level }
     val (futureGear, currentGear) = oneItemPerLevelList.span { it.level > currentLevel }
 
-    if (futureGear.isNotEmpty() && futureGear[0] !in knownGear.keys) registerItemPossession(futureGear[0])
+    if (futureGear.isNotEmpty()) registerItemPossession(futureGear[0])
 
     for (item in currentGear) {
-        if (item !in knownGear.keys) registerItemPossession(item)
+        registerItemPossession(item)
         if (knownGear[item]!!) break
     }
 }
 
 private fun registerItemPossession(item: Gear) {
+    if (item in knownGear.keys) return
     println(item)
     var answer = ""
     while (answer != "h" && answer != "w") {
