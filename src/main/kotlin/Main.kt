@@ -7,7 +7,7 @@ val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val items = mutableListOf<Item>()
 val jobLevels = File("levels.txt").readLines().map(::jobToLevel)
-val knownGear = mutableMapOf<Item, Boolean>()
+val knownGear = mutableMapOf<Gear, Boolean>()
 
 private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
     val (jobStr, levelStr) = jobLevelAbbreviation.span { it.isUpperCase() }
@@ -68,20 +68,22 @@ private fun registerItemPossession(item: Gear) {
 }
 
 private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
-    File(fileName).readLines().associate { itemName -> items.find { it.name == itemName }!! to haveItem }
+    File(fileName).readLines().map { line -> line.dropWhile { it != ' ' }.drop(1) }
+        .associate { itemName -> items.find { it.name == itemName }!! as Gear to haveItem }
 
 private fun saveList(fileName: String, haveItem: Boolean) {
-    val itemsToSave = knownGear.filterValues { it == haveItem }.keys.map { it.name }.sorted().joinToString("\n")
+    val itemsToSave =
+        knownGear.filterValues { it == haveItem }.keys.map { "${it.recommendedJobsType}${it.level} ${it.name}" }.sorted()
+            .joinToString("\n")
     File(fileName).writeText(itemsToSave)
 }
 
 private fun allowUserToSearch() {
     while (true) {
-        println("? to get BIS for a class [?CNJ25] # to exit:")
+        println("JOBlvl to get BIS for a class [CNJ25] # to exit:")
         val soughtMaterial = readln()
         if (soughtMaterial == "#") exitProcess(0)
-        if (soughtMaterial.startsWith("?")) findBestInSlot(soughtMaterial.drop(1))
-        else println("'$soughtMaterial' is an unsupported input. Please try again.")
+        findBestInSlot(soughtMaterial)
     }
 }
 

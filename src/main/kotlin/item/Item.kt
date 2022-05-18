@@ -3,8 +3,10 @@ package item
 import Category
 import Category.*
 import Job
+import JobRecommendation
 import JobRestriction
 import item.Stat.*
+import jobLevels
 import span
 
 abstract class Item(val name: String, open val source: Source) {
@@ -129,6 +131,11 @@ class Gear(
     source: Crafting, stats: Map<Stat, Int>
 ) : StatsProvidingItem(name, source, stats) {
 
+    val recommendedJobsType: String =
+        if (jobRestriction.jobs.size == 1) jobRestriction.toString()
+        else jobLevels.filter { (job, jobLevel) -> isSuitableFor(job, jobLevel + 1) }
+            .joinToString(",") { "${it.first}" }
+
     override fun toString(): String {
         val statsString = if (stats.isEmpty()) "" else ", ${statsToString()}"
         return "$name (Level $level$statsString)"
@@ -137,9 +144,9 @@ class Gear(
     fun isSuitableFor(job: Job, jobLevel: Int): Boolean =
         level <= jobLevel && job in getPermittedJobs() && job in getRecommendedJobs()
 
-    private fun getRecommendedJobs(): Set<Job> =
-        JobRecommendation.values().filter { jobType -> jobType.usefulStats.any { it in stats.keys } }
-            .flatMap { it.jobs }.toSet() + if (jobRestriction.jobs.size == 1) jobRestriction.jobs else setOf()
+    private fun getRecommendedJobs(): Set<Job> = if (jobRestriction.jobs.size == 1) jobRestriction.jobs
+        else JobRecommendation.values().filter { jobType -> jobType.usefulStats.any { it in stats.keys } }
+            .flatMap { it.jobs }.toSet()
 
     private fun getPermittedJobs(): Set<Job> = jobRestriction.jobs
 
