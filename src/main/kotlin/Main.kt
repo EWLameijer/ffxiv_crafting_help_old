@@ -23,6 +23,7 @@ fun main() {
 
     items += categorizeMaterials(categoriesWithRawMaterials)
     items.forEach(::println)
+    checkRecipeLevelsUpToDate()
 
     knownGear += loadRelevantGear("wishlist.txt", false)
     knownGear += loadRelevantGear("have.txt", true)
@@ -33,6 +34,28 @@ fun main() {
     saveList("wishlist.txt", false)
     saveList("have.txt", true)
     allowUserToSearch()
+}
+
+fun checkRecipeLevelsUpToDate() {
+    val allCraftedItems = items.filterIsInstance<CraftedItem>()
+    jobLevels.forEach { (job, level) ->
+        if (job in JobRecommendation.Crafter.jobs) {
+            val jobItems = allCraftedItems.filterByCraftingJob(job)
+            for (checkLevel in -2..level step 5) {
+                // ranges are 1..5, 6..10 etc, opened at range -3 (level 21 recipes at level 18).
+                val startLevel = checkLevel + 3
+                val endLevel = startLevel + 4
+                val levelRange = startLevel..endLevel
+                if (jobItems.none { it.source.level in levelRange })
+                    throw Exception("Cannot find a ${job.abbreviation} recipe for levelrange $levelRange.")
+            }
+        }
+    }
+}
+
+private fun List<CraftedItem>.filterByCraftingJob(job: Job) = filter {
+    val category = it.source.manner as Category.CraftingCategory
+    category.abbreviation == job.abbreviation
 }
 
 private fun checkUsefulGear() {
@@ -73,7 +96,8 @@ private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
 
 private fun saveList(fileName: String, haveItem: Boolean) {
     val itemsToSave =
-        knownGear.filterValues { it == haveItem }.keys.map { "${it.recommendedJobsType}${it.level} ${it.name}" }.sorted()
+        knownGear.filterValues { it == haveItem }.keys.map { "${it.recommendedJobsType}${it.level} ${it.name}" }
+            .sorted()
             .joinToString("\n")
     File(fileName).writeText(itemsToSave)
 }

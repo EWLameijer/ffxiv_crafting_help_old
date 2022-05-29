@@ -3,7 +3,7 @@ package item
 import Category
 import Category.*
 
-sealed class Source(private val level: Int, val manner: Category) {
+sealed class Source(val level: Int, val manner: Category) {
     override fun toString() = "$manner $level"
 }
 
