@@ -6,9 +6,12 @@ import Job.*
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
-val items = mutableListOf<Item>()
 val jobLevels = File("levels.txt").readLines().map(::jobToLevel)
-val knownGear = mutableMapOf<Gear, Boolean>()
+val items = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
+    .dropWhile { it != "#CRP" }.takeWhile { it != "$$" }.categorizeMaterials()
+val itemFiles = listOf("wishlist.txt" to false, "have.txt" to true)
+val knownGear: MutableMap<Gear, Boolean> =
+    itemFiles.flatMap { loadRelevantGear(it.first, it.second) }.toMap().toMutableMap()
 
 private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
     val (jobStr, levelStr) = jobLevelAbbreviation.span { it.isUpperCase() }
@@ -19,28 +22,19 @@ private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
 }
 
 fun main() {
-    val lines = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
-    val categoriesWithRawMaterials = lines.dropWhile { it != "#CRP" }.takeWhile { it != "$$" }
-
-    items += categorizeMaterials(categoriesWithRawMaterials)
-    items.forEach(::println)
     checkRecipeLevelsUpToDate()
-
-    knownGear += loadRelevantGear("wishlist.txt", false)
-    knownGear += loadRelevantGear("have.txt", true)
-
     checkUsefulGear()
 
     knownGear.forEach { (item, have) -> println("$item => $have") }
-    saveList("wishlist.txt", false)
-    saveList("have.txt", true)
+    itemFiles.forEach { saveList(it.first, it.second) }
+
     allowUserToSearch()
 }
 
 fun checkRecipeLevelsUpToDate() {
     jobLevels.forEach { (job, level) ->
         if (job in getJobsOfType<CrafterJob>()) {
-            val jobItems = items.filter { it.source.manner == job}
+            val jobItems = items.filter { it.source.manner == job }
             for (checkLevel in -2..level step 5) {
                 // ranges are 1..5, 6..10 etc, opened at range -3 (level 21 recipes at level 18).
                 val startLevel = checkLevel + 3
@@ -87,7 +81,7 @@ private fun registerItemPossession(item: Gear) {
 
 private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
     File(fileName).readLines().map { line -> line.dropWhile { it != ' ' }.drop(1) }
-        .associate { itemName -> items.find { it.name == itemName }!! as Gear to haveItem }
+        .map { itemName -> items.find { it.name == itemName }!! as Gear to haveItem }
 
 private fun saveList(fileName: String, haveItem: Boolean) {
     val itemsToSave =
@@ -138,10 +132,10 @@ fun getBestConsumable(attributeName: String) {
     println(consumableList.sortedByDescending { it.stats[chosenAttribute] }.take(5).joinToString(", "))
 }
 
-private fun categorizeMaterials(lines: List<String>): List<Item> {
+private fun List<String>.categorizeMaterials(): List<Item> {
     var currentJob: Job? = null
     val rawMaterials = mutableListOf<Item>()
-    for (line in lines) {
+    for (line in this) {
         when (line[0]) {
             '#' -> currentJob = Job.values().find { it.abbreviation == line.substring(1).trim() }
             '-' -> continue
