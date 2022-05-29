@@ -1,12 +1,11 @@
 package item
 
-import Category
-import Category.*
+import Job
+import Job.*
 
-sealed class Source(val level: Int, val manner: Category) {
+class Source(val level: Int, job: Job) {
+    val manner: Job = if (job.jobType is CrafterJob) job
+    else throw IllegalArgumentException("Source constructor exception: $job is not a crafter job!")
+
     override fun toString() = "$manner $level"
 }
-
-class Gathering(level: Int, manner: GatheringCategory) : Source(level, manner)
-
-class Crafting(level: Int, manner: CraftingCategory) : Source(level, manner)

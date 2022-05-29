@@ -1,32 +1,45 @@
 import item.Stat
+import item.Stat.*
+import ArmorType.*
+import Job.*
 
-enum class Job(val abbreviation: String) {
-    Arcanist("ACN"), Alchemist("ALC"), Archer("ARC"), Armorer("ARM"),
-    Astrologian("AST"), Blacksmith("BSM"), Botanist("BTN"), Conjurer("CNJ"),
-    Carpenter("CRP"), Culinarian("CUL"), DarkKnight("DRK"), Fisher("FSH"),
-    Gladiator("GLA"), Goldsmith("GSM"), Lancer("LNC"), Leatherworker("LTW"),
-    Machinist("MCH"), Miner("MIN"), Marauder("MRD"), Pugilist("PGL"),
-    Rogue("ROG"), Scholar("SCH"), Thaumaturge("THM"), Weaver("WVR")
+enum class ArmorType { Leather, Mail, Plate }
+
+enum class Job(val abbreviation: String, val jobType: JobType) {
+    Arcanist("ACN", CasterJob()), Alchemist("ALC", CrafterJob()),
+    Archer("ARC", DexterityJob()), Armorer("ARM", CrafterJob()),
+    Astrologian("AST", HealerJob()), Blacksmith("BSM", CrafterJob()),
+    Botanist("BTN", GathererJob()), Conjurer("CNJ", HealerJob()),
+    Carpenter("CRP", CrafterJob()), Culinarian("CUL", CrafterJob()),
+    DarkKnight("DRK", TankJob()), Fisher("FSH", GathererJob()),
+    Gladiator("GLA", TankJob()), Goldsmith("GSM", CrafterJob()),
+    Lancer("LNC", MailJob()), Leatherworker("LTW", CrafterJob()),
+    Machinist("MCH",DexterityJob()), Miner("MIN", GathererJob()),
+    Marauder("MRD", TankJob()), Pugilist("PGL", StrengthLeatherJob()),
+    Rogue("ROG",DexterityJob()), Scholar("SCH", HealerJob()),
+    Thaumaturge("THM", CasterJob()), Weaver("WVR", CrafterJob());
+
+    open class JobType(val primaryStats: Set<Stat>)
+    class GathererJob : JobType(setOf(Perception, GP, Gathering))
+    class CrafterJob : JobType(setOf(Control, CP, Craftmanship))
+    abstract class AdventurerJob(primaryStats: Set<Stat>) : JobType(primaryStats)
+
+    private abstract class MagicJob(primaryStats: Set<Stat>) : AdventurerJob(primaryStats)
+
+    private class HealerJob : MagicJob(setOf(Piety, Mind))
+    private class CasterJob : MagicJob(setOf(Intelligence))
+    abstract class WarJob(val maxArmor: ArmorType, mainStats: Set<Stat>) : AdventurerJob(mainStats)
+
+    private class DexterityJob : WarJob(Leather, setOf(Dexterity))
+    abstract class StrengthJob(maxArmor: ArmorType, otherStats: Set<Stat> = setOf()) :
+        WarJob(maxArmor, otherStats + Strength)
+
+    private class StrengthLeatherJob : StrengthJob(Leather)
+    class MailJob : StrengthJob(Mail)
+    class TankJob : StrengthJob(Plate, setOf(Tenacity, Defense))
 }
 
-// on basis of stats
-enum class JobRecommendation(val jobs: Set<Job>, val usefulStats: Set<Stat>, val isPrimaryStat: Boolean) {
-    Crafter(
-        setOf(
-            Job.Alchemist, Job.Armorer, Job.Blacksmith, Job.Carpenter, Job.Culinarian, Job.Goldsmith,
-            Job.Leatherworker, Job.Weaver
-        ), setOf(Stat.Control, Stat.CP, Stat.Craftmanship),
-        true
-    ),
-    Gatherer(setOf(Job.Botanist, Job.Fisher, Job.Miner), setOf(Stat.Perception, Stat.GP, Stat.Gathering), true),
-    Healer(setOf(Job.Scholar, Job.Conjurer, Job.Astrologian), setOf(Stat.Piety, Stat.Mind), true),
-    Caster(setOf(Job.Arcanist, Job.Thaumaturge), setOf(Stat.Intelligence), true),
-    Dexterous(setOf(Job.Archer, Job.Rogue), setOf(Stat.Dexterity), true),
-    Strong(JobRestriction.Mail.jobs + setOf(Job.Pugilist), setOf(Stat.Strength), true),
-    Tank(JobRestriction.Plate.jobs, setOf(Stat.Tenacity, Stat.Defense), true),
-    Adventurer(Healer.jobs + Caster.jobs + Dexterous.jobs + Strong.jobs, setOf(Stat.Defense, Stat.Vitality), false),
-    All(Crafter.jobs + Gatherer.jobs + Adventurer.jobs, setOf(), false)
-}
+inline fun <reified T> getJobsOfType() = Job.values().filter { it.jobType is T }.toSet()
 
 enum class JobRestriction(val abbreviation: String, val jobs: Set<Job>) {
     Arcanist(Job.Arcanist),
@@ -57,10 +70,10 @@ enum class JobRestriction(val abbreviation: String, val jobs: Set<Job>) {
     Black("B", setOf(Job.Gladiator, Job.Thaumaturge)),
     White("W", setOf(Job.Gladiator, Job.Conjurer)),
     ShieldCapable("S", setOf(Job.Gladiator, Job.Conjurer, Job.Thaumaturge)),
-    Plate("P", setOf(Job.Gladiator, Job.Marauder, Job.DarkKnight)),
-    Mail("M", Plate.jobs + setOf(Job.Lancer)),
-    Leather("L", Mail.jobs + setOf(Job.Archer, Job.Machinist, Job.Rogue)),
-    None("N", JobRecommendation.All.jobs);
+    Plate("P", getJobsOfType<TankJob>()),
+    Mail("M", Plate.jobs + getJobsOfType<MailJob>()),
+    Leather("L", getJobsOfType<WarJob>()),
+    None("N", getJobsOfType<Any>());
 
     constructor (job: Job) : this(job.abbreviation, setOf(job))
 }

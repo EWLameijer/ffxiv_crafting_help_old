@@ -1,9 +1,6 @@
 package item
 
-import Category
-import Category.*
 import Job
-import JobRecommendation
 import JobRestriction
 import item.Stat.*
 import jobLevels
@@ -13,53 +10,29 @@ abstract class Item(val name: String, open val source: Source) {
     override fun toString() = "$name ($source)"
 
     companion object {
-        fun parse(input: String, currentCategory: Category) = when (currentCategory) {
-            is GatheringCategory -> parseGatheredMaterial(input, currentCategory)
-            is CraftingCategory -> parseFromMasterFile(input, currentCategory)
-        }
-
         // 34 @steel doming hammer M34ARM
-        private fun parseFromMasterFile(input: String, category: CraftingCategory): Item {
+        fun parseFromMasterFile(input: String, sourceJob: Job): Item {
             val components = input.trim().split(" ")
             val level = components[0].toInt()
             val furtherComponents = components.drop(1)
             val (nameWithAt, usage) = furtherComponents.dropLast(1).joinToString(" ").trim() to
                     furtherComponents.last().trim()
             val name = nameWithAt.drop(1)
-            val source = Crafting(level, category)
+            val source = Source(level, sourceJob)
             return itemWithProperUsage(usage, name, source)
         }
 
-        private fun parseGatheredMaterial(input: String, category: GatheringCategory): GatheredIngredient {
-            val dataWithPossibleLocation = input.split(":")
-            val components = dataWithPossibleLocation[0].trim().split(" ")
-            val level = components[0].toInt()
-            val furtherComponents = components.drop(1)
-            val nameWithAt = furtherComponents.joinToString(" ").trim()
-
-            val source = Gathering(level, category)
-
-            return GatheredIngredient(nameWithAt.drop(1), source)
-        }
-
-        private fun itemWithProperUsage(usage: String, name: String, source: Crafting) = when {
-            usage == "I" -> CraftedIngredient(name, source)
+        private fun itemWithProperUsage(usage: String, name: String, source: Source) = when {
+            usage == "I" -> Ingredient(name, source)
             Consumable.canParse(usage) -> Consumable.parse(name, source, usage)
             else -> Gear.parse(name, source, usage)
         }
     }
 }
 
-abstract class CraftedItem(name: String, override val source: Crafting) : Item(name, source)
+class Ingredient(name: String, source: Source) : Item(name, source)
 
-abstract class GatheredItem(name: String, override val source: Gathering) : Item(name, source)
-
-class CraftedIngredient(name: String, source: Crafting) : CraftedItem(name, source)
-
-class GatheredIngredient(name: String, source: Gathering) : GatheredItem(name, source)
-
-abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map<Stat, Int>) :
-    CraftedItem(name, source) {
+abstract class StatsProvidingItem(name: String, source: Source, val stats: Map<Stat, Int>) : Item(name, source) {
     protected fun statsToString() = stats.toList().joinToString(", ") { (stat, size) -> "$stat: $size" }
 
     companion object {
@@ -92,7 +65,7 @@ abstract class StatsProvidingItem(name: String, source: Crafting, val stats: Map
     }
 }
 
-class Consumable(name: String, source: Crafting, stats: Map<Stat, Int>) : StatsProvidingItem(name, source, stats) {
+class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsProvidingItem(name, source, stats) {
     override fun toString() = "$name (${statsToString()})"
 
     companion object {
@@ -102,7 +75,7 @@ class Consumable(name: String, source: Crafting, stats: Map<Stat, Int>) : StatsP
             return canParseStats(input.substring(1))
         }
 
-        fun parse(name: String, source: Crafting, usageAsString: String): Consumable {
+        fun parse(name: String, source: Source, usageAsString: String): Consumable {
             val stats = statsParser(usageAsString.drop(1)).toMap()
             return Consumable(name, source, stats)
         }
@@ -128,7 +101,7 @@ class GearScore(
 
 class Gear(
     name: String, val slot: Slot, val level: Int, val jobRestriction: JobRestriction,
-    source: Crafting, stats: Map<Stat, Int>
+    source: Source, stats: Map<Stat, Int>
 ) : StatsProvidingItem(name, source, stats) {
 
     val recommendedJobsType: String =
@@ -145,8 +118,7 @@ class Gear(
         level <= jobLevel && job in getPermittedJobs() && job in getRecommendedJobs()
 
     private fun getRecommendedJobs(): Set<Job> = if (jobRestriction.jobs.size == 1) jobRestriction.jobs
-        else JobRecommendation.values().filter { jobType -> jobType.usefulStats.any { it in stats.keys } }
-            .flatMap { it.jobs }.toSet()
+    else Job.values().filter { job -> job.jobType.primaryStats.any { it in stats.keys } }.toSet()
 
     private fun getPermittedJobs(): Set<Job> = jobRestriction.jobs
 
@@ -157,8 +129,7 @@ class Gear(
     // may wind up before
     // cotton trousers (Level 17, Defense: 44, MagicDefense: 44, Strength: 3, Dexterity: 3, Vitality: 3, SkillSpeed: 3)
     fun scoreFor(chosenClass: Job): GearScore {
-        val correctCategories = JobRecommendation.values().filter { chosenClass in it.jobs && it.isPrimaryStat }
-        val statsScore = correctCategories.flatMap { it.usefulStats }.sumOf(::getStat)
+        val statsScore = chosenClass.jobType.primaryStats.sumOf(::getStat)
         return GearScore(statsScore, getStat(Vitality), getStat(Defense), level, restrictionScore())
     }
 
@@ -169,7 +140,7 @@ class Gear(
         private val jobRestrictionAbbreviations = JobRestriction.values().map { it.abbreviation }
 
         // M5ARCd1
-        fun parse(name: String, source: Crafting, usage: String): Gear {
+        fun parse(name: String, source: Source, usage: String): Gear {
             require(
                 usage.length >= 2 && usage[0] in slotAbbreviations && usage[1].isDigit() &&
                         canParseLastPart(usage)

@@ -2,6 +2,7 @@ import java.io.File
 import item.*
 import item.Slot.*
 import kotlin.system.exitProcess
+import Job.*
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
@@ -37,10 +38,9 @@ fun main() {
 }
 
 fun checkRecipeLevelsUpToDate() {
-    val allCraftedItems = items.filterIsInstance<CraftedItem>()
     jobLevels.forEach { (job, level) ->
-        if (job in JobRecommendation.Crafter.jobs) {
-            val jobItems = allCraftedItems.filterByCraftingJob(job)
+        if (job in getJobsOfType<CrafterJob>()) {
+            val jobItems = items.filter { it.source.manner == job}
             for (checkLevel in -2..level step 5) {
                 // ranges are 1..5, 6..10 etc, opened at range -3 (level 21 recipes at level 18).
                 val startLevel = checkLevel + 3
@@ -51,11 +51,6 @@ fun checkRecipeLevelsUpToDate() {
             }
         }
     }
-}
-
-private fun List<CraftedItem>.filterByCraftingJob(job: Job) = filter {
-    val category = it.source.manner as Category.CraftingCategory
-    category.abbreviation == job.abbreviation
 }
 
 private fun checkUsefulGear() {
@@ -144,14 +139,14 @@ fun getBestConsumable(attributeName: String) {
 }
 
 private fun categorizeMaterials(lines: List<String>): List<Item> {
-    var currentCategory: Category? = null
+    var currentJob: Job? = null
     val rawMaterials = mutableListOf<Item>()
     for (line in lines) {
         when (line[0]) {
-            '#' -> currentCategory = categoryFrom(line.substring(1).trim())
+            '#' -> currentJob = Job.values().find { it.abbreviation == line.substring(1).trim() }
             '-' -> continue
             else -> {
-                val newItem = Item.parse(line, currentCategory!!)
+                val newItem = Item.parseFromMasterFile(line, currentJob!!)
                 println(newItem)
                 sanityCheck(newItem)
                 rawMaterials += newItem
