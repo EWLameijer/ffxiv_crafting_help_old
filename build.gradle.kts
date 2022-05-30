@@ -18,8 +18,17 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:5.8.1"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.2")
+}
+
 tasks.test {
     useJUnitPlatform()
+    testLogging {
+        events("passed", "skipped", "failed")
+    }
 }
 
 tasks.withType<KotlinCompile> {

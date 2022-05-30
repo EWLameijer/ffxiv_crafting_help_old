@@ -3,15 +3,20 @@ import item.*
 import item.Slot.*
 import kotlin.system.exitProcess
 import Job.*
+import JobRestriction.*
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val jobLevels = File("levels.txt").readLines().map(::jobToLevel)
-val items = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
+val items = loadItems()
+
+fun loadItems() = File("""D:\GoogleDriveEW\Hobby\Spellen\FFXIV\Lhei_Phoenix\crafting.txt""").readLines()
     .dropWhile { it != "#CRP" }.takeWhile { it != "$$" }.categorizeMaterials()
+
 val itemFiles = listOf("wishlist.txt" to false, "have.txt" to true)
 val knownGear: MutableMap<Gear, Boolean> =
     itemFiles.flatMap { loadRelevantGear(it.first, it.second) }.toMap().toMutableMap()
+val gearManager = GearManager(items)
 
 private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
     val (jobStr, levelStr) = jobLevelAbbreviation.span { it.isUpperCase() }
@@ -23,7 +28,8 @@ private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
 
 fun main() {
     checkRecipeLevelsUpToDate()
-    checkUsefulGear()
+
+    gearManager.checkUsefulGear(jobLevels)
 
     knownGear.forEach { (item, have) -> println("$item => $have") }
     itemFiles.forEach { saveList(it.first, it.second) }
@@ -47,37 +53,6 @@ fun checkRecipeLevelsUpToDate() {
     }
 }
 
-private fun checkUsefulGear() {
-    for ((job, currentLevel) in jobLevels) { // loop over jobs
-        val prioritizedGear = getPrioritizedGear(job, currentLevel + 1)
-        for (gearListForSlot in prioritizedGear.values) { // loop over gearslots for each job
-            checkGearForSlot(gearListForSlot, currentLevel)
-        }
-    }
-}
-
-private fun checkGearForSlot(gearList: List<Gear>, currentLevel: Int) {
-    val oneItemPerLevelList = gearList.distinctBy { it.level }
-    val (futureGear, currentGear) = oneItemPerLevelList.span { it.level > currentLevel }
-
-    if (futureGear.isNotEmpty()) registerItemPossession(futureGear[0])
-
-    for (item in currentGear) {
-        registerItemPossession(item)
-        if (knownGear[item]!!) break
-    }
-}
-
-private fun registerItemPossession(item: Gear) {
-    if (item in knownGear.keys) return
-    println(item)
-    var answer = ""
-    while (answer != "h" && answer != "w") {
-        println("have(h) or wish(w)?")
-        answer = readln()
-    }
-    knownGear[item] = (answer == "h")
-}
 
 private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
     File(fileName).readLines().map { line -> line.dropWhile { it != ' ' }.drop(1) }
@@ -107,19 +82,11 @@ fun findBestInSlot(classAndLevel: String) {
 
 private fun getBestGear(jobAndLevel: String) {
     val (chosenClass, level) = jobToLevel(jobAndLevel)
-    val prioritizedGear = getPrioritizedGear(chosenClass, level)
+    val prioritizedGear = gearManager.getPrioritizedGear(chosenClass, level)
     val sortedSlots: List<Slot> = prioritizedGear.keys.sortedByDescending { prioritizedGear[it]!![0].level }
     sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
 }
 
-private fun getPrioritizedGear(
-    chosenClass: Job,
-    level: Int
-): Map<Slot, List<Gear>> {
-    val suitableGear =
-        items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
-    return suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
-}
 
 fun getBestConsumable(attributeName: String) {
     val chosenAttribute = Stat.values().find { it.abbreviation == attributeName }
@@ -153,7 +120,7 @@ private fun List<String>.categorizeMaterials(): List<Item> {
 fun sanityCheck(newItem: Item) {
     if (newItem is Gear) {
         val gearStats = newItem.stats.keys
-        val dowRestriction = setOf(JobRestriction.Plate, JobRestriction.Mail, JobRestriction.Leather)
+        val dowRestriction = setOf(Plate, Mail, Leather)
         if (newItem.jobRestriction in dowRestriction && (newItem.slot !in armorSlots ||
                     (Stat.Intelligence in gearStats || Stat.Mind in gearStats) || Stat.Defense !in gearStats)
         )
@@ -161,8 +128,14 @@ fun sanityCheck(newItem: Item) {
         if ((newItem.slot == MainHand || newItem.slot == TwoHand) && newItem.jobRestriction.jobs.size != 1) {
             throw Exception("Item $newItem has unexpected (incorrect?) stats.")
         }
+        if (isShield(newItem) && newItem.stats[Stat.Defense] == null) {
+            throw Exception("Item $newItem has unexpected (incorrect?) stats.")
+        }
     }
 }
+
+// an offhand that can (also) be carried by a gladiator is a shield, as gladiators can carry all shields
+private fun isShield(newItem: Gear) = newItem.slot == OffHand && Job.Gladiator in newItem.jobRestriction.jobs
 
 
 

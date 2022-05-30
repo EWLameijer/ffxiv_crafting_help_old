@@ -82,6 +82,12 @@ class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsPro
     }
 }
 
+// especially for shields hard.
+// TODO
+// usually: compare on stats
+// in some cases (mail /plate/leather body 30) then statscompare does not work, use restrictiveness
+// ALTERNATIVE: no stats for main hand weapons (am too lazy for that, level is generally enough), then check levels!
+//
 class GearScore(
     private val statsScore: Int,
     private val vitality: Int,
@@ -91,10 +97,10 @@ class GearScore(
 ) : Comparable<GearScore> {
     override operator fun compareTo(other: GearScore): Int = when {
         statsScore != other.statsScore -> statsScore - other.statsScore
-        defense != other.defense -> defense - other.defense
-        vitality != other.vitality -> vitality - other.vitality
         level != other.level -> level - other.level
         restriction != other.restriction -> restriction - other.restriction
+        defense != other.defense -> defense - other.defense
+        vitality != other.vitality -> vitality - other.vitality
         else -> 0
     }
 }
