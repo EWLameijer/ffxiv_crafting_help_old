@@ -25,7 +25,8 @@ class GearPriorityTests {
         private fun gearPriority() = listOf(
             Arguments.of(Job.Gladiator, 8, Slot.OffHand, "bronze hoplon"),
             Arguments.of(Job.Gladiator, 33, Slot.Body, "steel scale mail"),
-            Arguments.of(Job.Gladiator, 34, Slot.OffHand, "bull hoplon")
+            Arguments.of(Job.Gladiator, 34, Slot.OffHand, "bull hoplon"),
+            Arguments.of(Job.Gladiator, 20, Slot.Body, "iron cuirass")
         )
     }
 }

@@ -2,7 +2,9 @@ import item.Gear
 import item.Item
 import item.Slot
 
-class GearManager(private val items: List<Item>) {
+class GearManager(items: List<Item>) {
+    private val gear = items.filterIsInstance<Gear>()
+
     fun checkUsefulGear(jobLevels: List<Pair<Job, Int>>) {
         for ((job, currentLevel) in jobLevels) { // loop over jobs
             val prioritizedGear = getPrioritizedGear(job, currentLevel + 1)
@@ -35,13 +37,8 @@ class GearManager(private val items: List<Item>) {
         knownGear[item] = (answer == "h")
     }
 
-    fun getPrioritizedGear(
-        chosenClass: Job,
-        level: Int
-    ): Map<Slot, List<Gear>> {
-        val suitableGear =
-            items.filterIsInstance<Gear>().filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
+    fun getPrioritizedGear(chosenClass: Job, level: Int): Map<Slot, List<Gear>> {
+        val suitableGear = gear.filter { it.isSuitableFor(chosenClass, level) }.groupBy { it.slot }
         return suitableGear.mapValues { (_, v) -> v.sortedByDescending { it.scoreFor(chosenClass) }.take(3) }
     }
-
 }

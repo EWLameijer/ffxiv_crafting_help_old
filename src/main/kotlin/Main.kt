@@ -5,6 +5,8 @@ import kotlin.system.exitProcess
 import Job.*
 import JobRestriction.*
 
+// TODO: make items not global anymore?
+
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
 val jobLevels = File("levels.txt").readLines().map(::jobToLevel)
@@ -53,7 +55,6 @@ fun checkRecipeLevelsUpToDate() {
     }
 }
 
-
 private fun loadRelevantGear(fileName: String, haveItem: Boolean) =
     File(fileName).readLines().map { line -> line.dropWhile { it != ' ' }.drop(1) }
         .map { itemName -> items.find { it.name == itemName }!! as Gear to haveItem }
@@ -87,7 +88,6 @@ private fun getBestGear(jobAndLevel: String) {
     sortedSlots.forEach { println(prioritizedGear[it]!!.joinToString(", ")) }
 }
 
-
 fun getBestConsumable(attributeName: String) {
     val chosenAttribute = Stat.values().find { it.abbreviation == attributeName }
     if (chosenAttribute == null) {
@@ -114,6 +114,7 @@ private fun List<String>.categorizeMaterials(): List<Item> {
             }
         }
     }
+    sanityCheckOverall(rawMaterials)
     return rawMaterials
 }
 
@@ -136,6 +137,24 @@ fun sanityCheck(newItem: Item) {
 
 // an offhand that can (also) be carried by a gladiator is a shield, as gladiators can carry all shields
 private fun isShield(newItem: Gear) = newItem.slot == OffHand && Job.Gladiator in newItem.jobRestriction.jobs
+
+fun sanityCheckOverall(currentItems: List<Item>) {
+    currentItems.filterIsInstance<Gear>().filter(::isRegularDoWArmor).groupBy { it.level }.values.forEach { gear ->
+        println(gear)
+        val (bodyLegs, other) = gear.partition { it.slot in setOf(Body, Legs) }
+        if (bodyLegs.numDefenseValues() > 1 || other.numDefenseValues() > 1)
+            throw Exception("Item $bodyLegs or $other has unexpected (incorrect?) stats.")
+    }
+}
+
+fun List<Gear>.numDefenseValues() = map { it.stats[Stat.Defense] }.distinct().size
+
+
+private fun isRegularDoWArmor(it: Gear) =
+    // 1: is this (regular) DoW armor?
+    it.slot in armorSlots && it.slot !in setOf(Cowl, Stockings) && it.jobRestriction != None
+            // silver tricorne: GREEN! Vintage gear also has superior armor
+            && !it.name.startsWith("vintage") && it.name !in setOf("silver tricorne")
 
 
 
