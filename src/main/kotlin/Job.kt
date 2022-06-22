@@ -5,19 +5,23 @@ import Job.*
 
 enum class ArmorType { Leather, Mail, Plate }
 
-enum class Job(val abbreviation: String, val jobType: JobType) {
-    Arcanist("ACN", CasterJob()), Alchemist("ALC", CrafterJob()),
-    Archer("ARC", DexterityJob()), Armorer("ARM", CrafterJob()),
-    Astrologian("AST", HealerJob()), Blacksmith("BSM", CrafterJob()),
-    Botanist("BTN", GathererJob()), Conjurer("CNJ", HealerJob()),
+enum class Job(val abbreviation: String, val jobType: JobType, val descendants: Set<Job> = setOf()) {
+    Alchemist("ALC", CrafterJob()), Archer("ARC", DexterityJob()),
+    Armorer("ARM", CrafterJob()), Astrologian("AST", HealerJob()),
+    Blacksmith("BSM", CrafterJob()), Botanist("BTN", GathererJob()),
     Carpenter("CRP", CrafterJob()), Culinarian("CUL", CrafterJob()),
     DarkKnight("DRK", TankJob()), Fisher("FSH", GathererJob()),
     Gladiator("GLA", TankJob()), Goldsmith("GSM", CrafterJob()),
     Lancer("LNC", MailJob()), Leatherworker("LTW", CrafterJob()),
-    Machinist("MCH",DexterityJob()), Miner("MIN", GathererJob()),
-    Marauder("MRD", TankJob()), Pugilist("PGL", StrengthLeatherJob()),
-    Rogue("ROG",DexterityJob()), Scholar("SCH", HealerJob()),
-    Thaumaturge("THM", CasterJob()), Weaver("WVR", CrafterJob());
+    Machinist("MCH", DexterityJob()), Miner("MIN", GathererJob()),
+    Marauder("MRD", TankJob()), Ninja("NIN", DexterityJob()),
+    Pugilist("PGL", StrengthLeatherJob()), Scholar("SCH", HealerJob()),
+    Summoner("SMN", CasterJob()), Thaumaturge("THM", CasterJob()),
+    Weaver("WVR", CrafterJob()), WhiteMage("WHM", HealerJob()),
+
+    Arcanist("ACN", CasterJob(), setOf(Scholar, Summoner)),
+    Conjurer("CNJ", HealerJob(), setOf(WhiteMage)),
+    Rogue("ROG", DexterityJob(), setOf(Ninja));
 
     open class JobType(val primaryStats: Set<Stat>)
     class GathererJob : JobType(setOf(Perception, GP, Gathering))
@@ -75,6 +79,6 @@ enum class JobRestriction(val abbreviation: String, val jobs: Set<Job>) {
     Leather("L", getJobsOfType<WarJob>()),
     None("N", getJobsOfType<Any>());
 
-    constructor (job: Job) : this(job.abbreviation, setOf(job))
+    constructor (job: Job) : this(job.abbreviation, job.descendants + job)
 }
 

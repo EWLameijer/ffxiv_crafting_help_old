@@ -27,6 +27,8 @@ Wrists		White (CNJ/Pal shield)
 enum class Slot(val abbreviation: Char) {
     Hands('A'), Body('B'), Cowl('C'), Earrings('E'), Feet('F'),
     Head('H'), Legs('L'), MainHand('M'), Neck('N'),
-    OffHand('O'), Ring('R'), Stockings('S'), TwoHand('T'), Wrists('W')
+    OffHand('O'), Ring('R'), Stockings('S'), TwoHand('T'), Wrists('W');
 }
+
+val primarySlots = setOf(Slot.MainHand, Slot.TwoHand)
 

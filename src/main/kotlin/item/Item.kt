@@ -83,11 +83,9 @@ class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsPro
 }
 
 // especially for shields hard.
-// TODO
 // usually: compare on stats
 // in some cases (mail /plate/leather body 30) then statscompare does not work, use restrictiveness
 // ALTERNATIVE: no stats for main hand weapons (am too lazy for that, level is generally enough), then check levels!
-//
 class GearScore(
     private val statsScore: Int,
     private val vitality: Int,
@@ -123,8 +121,9 @@ class Gear(
     fun isSuitableFor(job: Job, jobLevel: Int): Boolean =
         level <= jobLevel && job in getPermittedJobs() && job in getRecommendedJobs()
 
-    private fun getRecommendedJobs(): Set<Job> = if (jobRestriction.jobs.size == 1) jobRestriction.jobs
-    else Job.values().filter { job -> job.jobType.primaryStats.any { it in stats.keys } }.toSet()
+    private fun getRecommendedJobs(): Set<Job> =
+        if (slot in primarySlots) jobRestriction.jobs
+        else Job.values().filter { job -> job.jobType.primaryStats.any { it in stats.keys } }.toSet()
 
     private fun getPermittedJobs(): Set<Job> = jobRestriction.jobs
 

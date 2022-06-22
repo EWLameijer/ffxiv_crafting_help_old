@@ -2,7 +2,7 @@ import item.Gear
 import item.Item
 import item.Slot
 
-class GearManager(items: List<Item>) {
+class GearManager(items: List<Item>, private val knownGear : MutableMap<Gear, Boolean>) {
     private val gear = items.filterIsInstance<Gear>()
 
     fun checkUsefulGear(jobLevels: List<Pair<Job, Int>>) {

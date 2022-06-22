@@ -1,3 +1,8 @@
+Hmmm...
+
+Fundamentally, a job restriction means a jobs and all its descendants
+
+
 Ugh...
 recipes: basically can be list of items,
 

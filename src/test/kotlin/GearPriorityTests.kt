@@ -13,7 +13,7 @@ class GearPriorityTests {
     @MethodSource("gearPriority")
     fun testPrioritizing(job: Job, level: Int, slot: Slot, prioritizedItemName: String) {
         val items = loadItems()
-        val gearManager = GearManager(items)
+        val gearManager = GearManager(items, loadKnownGear(items))
         val actualName = gearManager.getPrioritizedGear(job, level)[slot]!![0].name
         assert(actualName == prioritizedItemName) {
             "$job$level $slot should lead to $prioritizedItemName, not $actualName."
