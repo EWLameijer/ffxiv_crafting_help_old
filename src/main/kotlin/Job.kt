@@ -11,32 +11,33 @@ enum class Job(val abbreviation: String, val jobType: JobType, val descendants: 
     Blacksmith("BSM", CrafterJob()), Botanist("BTN", GathererJob()),
     Carpenter("CRP", CrafterJob()), Culinarian("CUL", CrafterJob()),
     DarkKnight("DRK", TankJob()), Fisher("FSH", GathererJob()),
-    Gladiator("GLA", TankJob()), Goldsmith("GSM", CrafterJob()),
-    Lancer("LNC", MailJob()), Leatherworker("LTW", CrafterJob()),
-    Machinist("MCH", DexterityJob()), Miner("MIN", GathererJob()),
-    Marauder("MRD", TankJob()), Ninja("NIN", DexterityJob()),
+    Goldsmith("GSM", CrafterJob()), Lancer("LNC", MailJob()),
+    Leatherworker("LTW", CrafterJob()), Machinist("MCH", DexterityJob()),
+    Miner("MIN", GathererJob()), Marauder("MRD", TankJob()),
+    Ninja("NIN", DexterityJob()), Paladin("PLD", TankJob()),
     Pugilist("PGL", StrengthLeatherJob()), Scholar("SCH", HealerJob()),
     Summoner("SMN", CasterJob()), Thaumaturge("THM", CasterJob()),
     Weaver("WVR", CrafterJob()), WhiteMage("WHM", HealerJob()),
 
     Arcanist("ACN", CasterJob(), setOf(Scholar, Summoner)),
     Conjurer("CNJ", HealerJob(), setOf(WhiteMage)),
+    Gladiator("GLA", TankJob(), setOf(Paladin)),
     Rogue("ROG", DexterityJob(), setOf(Ninja));
 
-    open class JobType(val primaryStats: Set<Stat>)
-    class GathererJob : JobType(setOf(Perception, GP, Gathering))
-    class CrafterJob : JobType(setOf(Control, CP, Craftmanship))
-    abstract class AdventurerJob(primaryStats: Set<Stat>) : JobType(primaryStats)
+    open class JobType(val mainStats: Set<Stat>, val supportingStats: Set<Stat> = setOf()) {
+        fun relevantStats() = mainStats + supportingStats
+    }
+    class GathererJob : JobType(setOf(), setOf(Perception, GP, Gathering))
+    class CrafterJob : JobType(setOf(), setOf(Control, CP, Craftmanship))
+    abstract class AdventurerJob(mainStat: Stat, supportingStats: Set<Stat>) : JobType(setOf(Vitality, mainStat), supportingStats)
 
-    private abstract class MagicJob(primaryStats: Set<Stat>) : AdventurerJob(primaryStats)
+    private class HealerJob : AdventurerJob(Mind, setOf(Piety))
+    private class CasterJob : AdventurerJob(Intelligence, setOf())
+    abstract class WarJob(val maxArmor: ArmorType, mainStat: Stat, supportingStats: Set<Stat> = setOf()) : AdventurerJob(mainStat, supportingStats)
 
-    private class HealerJob : MagicJob(setOf(Piety, Mind))
-    private class CasterJob : MagicJob(setOf(Intelligence))
-    abstract class WarJob(val maxArmor: ArmorType, mainStats: Set<Stat>) : AdventurerJob(mainStats)
-
-    private class DexterityJob : WarJob(Leather, setOf(Dexterity))
-    abstract class StrengthJob(maxArmor: ArmorType, otherStats: Set<Stat> = setOf()) :
-        WarJob(maxArmor, otherStats + Strength)
+    private class DexterityJob : WarJob(Leather, Dexterity)
+    abstract class StrengthJob(maxArmor: ArmorType, supportingStats: Set<Stat> = setOf()) :
+        WarJob(maxArmor, Strength, supportingStats)
 
     private class StrengthLeatherJob : StrengthJob(Leather)
     class MailJob : StrengthJob(Mail)

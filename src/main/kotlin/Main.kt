@@ -132,7 +132,7 @@ fun sanityCheck(newItem: Item) {
                     (Intelligence in gearStats || Mind in gearStats) || Defense !in gearStats)
         )
             throw Exception("Item $newItem has unexpected (incorrect?) stats.")
-        if ((slot in primarySlots) && gearStats.isNotEmpty()) {
+        if ((slot in setOf(MainHand, TwoHand)) && gearStats.isNotEmpty()) {
             throw Exception("Item $newItem has unexpected (incorrect?) stats.")
         }
         if (isShield(newItem) && newItem.stats[Defense] == null) {
@@ -162,7 +162,12 @@ private fun isRegularDoWArmor(it: Gear) =
     it.slot in armorSlots && it.slot !in setOf(Cowl, Stockings) && it.jobRestriction != None &&
             (it.jobRestriction.jobs.toList()[0].jobType !is GathererJob) && (it.jobRestriction.jobs.toList()[0].jobType !is CrafterJob)
             // silver tricorne: GREEN! Vintage gear also has superior armor
-            && !it.name.startsWith("vintage") && it.name !in setOf("silver tricorne") && !it.name.startsWith("militia")
+            && !it.name.startsWithGreenPrefix() && it.name !in knownGreenArmor
+
+fun String.startsWithGreenPrefix() = prefixesOfGreenArmor.any { this.startsWith(it) }
+
+val prefixesOfGreenArmor = setOf("vintage", "militia")
+val knownGreenArmor = setOf("silver tricorne", "mosshorn scale mail")
 
 
 

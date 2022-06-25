@@ -87,6 +87,7 @@ class Consumable(name: String, source: Source, stats: Map<Stat, Int>) : StatsPro
 // in some cases (mail /plate/leather body 30) then statscompare does not work, use restrictiveness
 // ALTERNATIVE: no stats for main hand weapons (am too lazy for that, level is generally enough), then check levels!
 class GearScore(
+    private val mainStatsScore: Int,
     private val statsScore: Int,
     private val vitality: Int,
     private val defense: Int,
@@ -94,6 +95,7 @@ class GearScore(
     private val restriction: Int
 ) : Comparable<GearScore> {
     override operator fun compareTo(other: GearScore): Int = when {
+        mainStatsScore != other.mainStatsScore -> mainStatsScore - other.mainStatsScore
         statsScore != other.statsScore -> statsScore - other.statsScore
         level != other.level -> level - other.level
         restriction != other.restriction -> restriction - other.restriction
@@ -123,7 +125,7 @@ class Gear(
 
     private fun getRecommendedJobs(): Set<Job> =
         if (slot in primarySlots) jobRestriction.jobs
-        else Job.values().filter { job -> job.jobType.primaryStats.any { it in stats.keys } }.toSet()
+        else Job.values().filter { job -> job.jobType.relevantStats().any { it in stats.keys } }.toSet()
 
     private fun getPermittedJobs(): Set<Job> = jobRestriction.jobs
 
@@ -134,8 +136,9 @@ class Gear(
     // may wind up before
     // cotton trousers (Level 17, Defense: 44, MagicDefense: 44, Strength: 3, Dexterity: 3, Vitality: 3, SkillSpeed: 3)
     fun scoreFor(chosenClass: Job): GearScore {
-        val statsScore = chosenClass.jobType.primaryStats.sumOf(::getStat)
-        return GearScore(statsScore, getStat(Vitality), getStat(Defense), level, restrictionScore())
+        val mainStatsScore = chosenClass.jobType.mainStats.sumOf(::getStat)
+        val supportingStatsScore = chosenClass.jobType.supportingStats.sumOf(::getStat)
+        return GearScore(mainStatsScore, supportingStatsScore, getStat(Vitality), getStat(Defense), level, restrictionScore())
     }
 
     private fun restrictionScore() = -jobRestriction.jobs.size // the more restricted, the better

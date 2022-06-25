@@ -30,5 +30,5 @@ enum class Slot(val abbreviation: Char) {
     OffHand('O'), Ring('R'), Stockings('S'), TwoHand('T'), Wrists('W');
 }
 
-val primarySlots = setOf(Slot.MainHand, Slot.TwoHand)
+val primarySlots = setOf(Slot.MainHand, Slot.TwoHand, Slot.OffHand)
 

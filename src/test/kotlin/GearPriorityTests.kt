@@ -22,11 +22,14 @@ class GearPriorityTests {
 
     companion object {
         @JvmStatic
+        // generallly, level and strength/intelligence/vitality beats things like tenacity
         private fun gearPriority() = listOf(
             Arguments.of(Job.Gladiator, 8, Slot.OffHand, "bronze hoplon"),
             Arguments.of(Job.Gladiator, 33, Slot.Body, "steel scale mail"),
             Arguments.of(Job.Gladiator, 34, Slot.OffHand, "bull hoplon"),
-            Arguments.of(Job.Gladiator, 20, Slot.Body, "iron cuirass")
+            Arguments.of(Job.Gladiator, 20, Slot.Body, "iron cuirass"),
+            Arguments.of(Job.Gladiator, 37, Slot.Wrists, "boarskin wristbands"),
+            Arguments.of(Job.Gladiator, 37, Slot.Hands, "steel mitt gauntlets"),
         )
     }
 }
