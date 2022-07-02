@@ -6,8 +6,19 @@ import Job.*
 import JobRestriction.*
 import item.Stat.*
 import item.Stat
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
+import java.text.DecimalFormat
+import java.text.NumberFormat
+import java.util.*
 
-// TODO: make items not global anymore?
+object PersonalSettings {
+    private const val fileName = "personal_settings.txt"
+
+    fun charCode() = File(fileName).readLines().find { it.startsWith("character_code") }!!.split(" ")[1]
+}
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
 
@@ -26,7 +37,100 @@ private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
     return job to level
 }
 
+fun fetchLevels(): String {
+    val client = HttpClient.newBuilder().build()
+    val request = HttpRequest.newBuilder()
+        .uri(URI.create("https://xivapi.com/character/${PersonalSettings.charCode()}"))
+        .build()
+
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    return response.body()
+}
+
+fun fetchTest(): String {
+    val client = HttpClient.newBuilder().build()
+    val request = HttpRequest.newBuilder()
+        .uri(URI.create("https://eu.finalfantasyxiv.com/lodestone/character/${PersonalSettings.charCode()}/class_job/"))
+        .build()
+
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    return response.body()
+}
+
+fun String.getInt(key: String) = partFollowingJsonKey(key).takeWhile { it.isDigit() || it == '-' }.toInt()
+
+private fun String.partFollowingJsonKey(key: String) = substringAfter("\"$key\":")
+
+fun String.getString(key: String) = partFollowingJsonKey(key).takeWhile { it !in setOf(',', '}') }.drop(1).dropLast(1)
+
+data class JobData(val level: Int = -1, val currentExp: Int = -1, val maxExp: Int = -1, val name: String = "unknown") {
+    companion object {
+        fun fromJson(json: String): JobData {
+            val currentExp = json.getInt("ExpLevel")
+            val level = json.getInt("Level")
+            val maxExp = json.getInt("ExpLevelMax")
+            val name = json.substringAfter("UnlockedState").getString("Name")
+            return JobData(level = level, currentExp = currentExp, maxExp = maxExp, name = name)
+        }
+    }
+
+    val preciseLevel: Double get() = level + currentExp.toDouble() / maxExp
+
+    override fun toString(): String {
+        val preciseLevelAsString = "%.3f".format(preciseLevel)
+        return "$name: $preciseLevelAsString [$currentExp/$maxExp]"
+    }
+}
+
+/*fun getClasses(): List<JobData> {
+    val levelString = fetchLevels()
+    val jobsString = levelString.substringAfter("\"ClassJobs\":[").takeWhile { it != ']' }
+    return jobsString.split("}},{").map(JobData::fromJson).filter { it.level > 0 && it.name != "Scholar" }
+}*/
+
+fun getClasses(): List<JobData> =
+    fetchTest().getAllListElements().filter { it.contains("character__job__exp") }.map { it.toJobData() }
+        .filter { it.level > 0 }
+
+fun String.getAllListElements(): List<String> {
+    val result = mutableListOf<String>()
+    var currentIndex = 0
+    do {
+        val nextListItemStart = indexOf("<li>", currentIndex)
+        if (nextListItemStart == -1) break;
+        val nextListItemEnd = indexOf("</li>", nextListItemStart)
+        result += substring(nextListItemStart..nextListItemEnd + 4)
+        currentIndex = nextListItemEnd
+    } while (true)
+    return result
+}
+
+fun String.getHtmlValueByClass(className: String): String {
+    // extremely simple. Should use some real parser... But that would be separate study project
+    val location = indexOf(className)
+    val endOfInitTag = indexOf(">", location)
+    val startOfEndTag = indexOf("<", endOfInitTag)
+    return substring(endOfInitTag + 1 until startOfEndTag)
+}
+
+fun String.toIntOrZero(): Int {
+    val numberFormat = NumberFormat.getNumberInstance(Locale.ENGLISH) as DecimalFormat
+    val trimmed = this.trim()
+    return if (trimmed == "-") 0 else numberFormat.parse(trimmed).toInt()
+}
+
+fun String.toJobData(): JobData {
+    val currentAndMaxExp = getHtmlValueByClass("character__job__exp").split("/")
+    val currentExp = currentAndMaxExp[0].toIntOrZero()
+    val maxExp = currentAndMaxExp[1].toIntOrZero()
+    val level = getHtmlValueByClass("character__job__level").toIntOrZero()
+    val name = getHtmlValueByClass("character__job__name")
+    return JobData(level = level, currentExp = currentExp, maxExp = maxExp, name = name)
+}
+
 fun main() {
+    showClassesAndLevels()
+
     val items = loadItems()
     val knownGear: MutableMap<Gear, Boolean> = loadKnownGear(items)
     val gearManager = GearManager(items, knownGear)
@@ -38,6 +142,15 @@ fun main() {
     itemFiles.forEach { saveList(it.first, it.second, knownGear) }
 
     allowUserToSearch(gearManager, items)
+}
+
+private fun showClassesAndLevels() {
+    val jobs = getClasses()
+    jobs.forEach(::println)
+    with(jobs.map { it.preciseLevel }) {
+        println("min %.3f".format(minOrNull()) + "/avg %.3f".format(average()))
+    }
+    readln()
 }
 
 fun loadKnownGear(items: List<Item>) =
