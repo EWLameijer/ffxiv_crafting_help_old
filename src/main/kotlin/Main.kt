@@ -37,43 +37,17 @@ private fun jobToLevel(jobLevelAbbreviation: String): Pair<Job, Int> {
     return job to level
 }
 
-fun fetchLevels(): String {
-    val client = HttpClient.newBuilder().build()
-    val request = HttpRequest.newBuilder()
-        .uri(URI.create("https://xivapi.com/character/${PersonalSettings.charCode()}"))
-        .build()
-
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString());
-    return response.body()
-}
-
-fun fetchTest(): String {
+fun fetchLevelDataFromWebsite(): String {
     val client = HttpClient.newBuilder().build()
     val request = HttpRequest.newBuilder()
         .uri(URI.create("https://eu.finalfantasyxiv.com/lodestone/character/${PersonalSettings.charCode()}/class_job/"))
         .build()
 
-    val response = client.send(request, HttpResponse.BodyHandlers.ofString());
+    val response = client.send(request, HttpResponse.BodyHandlers.ofString())
     return response.body()
 }
 
-fun String.getInt(key: String) = partFollowingJsonKey(key).takeWhile { it.isDigit() || it == '-' }.toInt()
-
-private fun String.partFollowingJsonKey(key: String) = substringAfter("\"$key\":")
-
-fun String.getString(key: String) = partFollowingJsonKey(key).takeWhile { it !in setOf(',', '}') }.drop(1).dropLast(1)
-
 data class JobData(val level: Int = -1, val currentExp: Int = -1, val maxExp: Int = -1, val name: String = "unknown") {
-    companion object {
-        fun fromJson(json: String): JobData {
-            val currentExp = json.getInt("ExpLevel")
-            val level = json.getInt("Level")
-            val maxExp = json.getInt("ExpLevelMax")
-            val name = json.substringAfter("UnlockedState").getString("Name")
-            return JobData(level = level, currentExp = currentExp, maxExp = maxExp, name = name)
-        }
-    }
-
     val preciseLevel: Double get() = level + currentExp.toDouble() / maxExp
 
     override fun toString(): String {
@@ -82,14 +56,8 @@ data class JobData(val level: Int = -1, val currentExp: Int = -1, val maxExp: In
     }
 }
 
-/*fun getClasses(): List<JobData> {
-    val levelString = fetchLevels()
-    val jobsString = levelString.substringAfter("\"ClassJobs\":[").takeWhile { it != ']' }
-    return jobsString.split("}},{").map(JobData::fromJson).filter { it.level > 0 && it.name != "Scholar" }
-}*/
-
 fun getClasses(): List<JobData> =
-    fetchTest().getAllListElements().filter { it.contains("character__job__exp") }.map { it.toJobData() }
+    fetchLevelDataFromWebsite().getAllListElements().filter { it.contains("character__job__exp") }.map { it.toJobData() }
         .filter { it.level > 0 }
 
 fun String.getAllListElements(): List<String> {
@@ -97,7 +65,7 @@ fun String.getAllListElements(): List<String> {
     var currentIndex = 0
     do {
         val nextListItemStart = indexOf("<li>", currentIndex)
-        if (nextListItemStart == -1) break;
+        if (nextListItemStart == -1) break
         val nextListItemEnd = indexOf("</li>", nextListItemStart)
         result += substring(nextListItemStart..nextListItemEnd + 4)
         currentIndex = nextListItemEnd

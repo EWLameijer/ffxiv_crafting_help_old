@@ -1,5 +1,7 @@
 Hmmm...
 
+// TODO: make items not global anymore?
+
 Fundamentally, a job restriction means a jobs and all its descendants
 
 
