@@ -17,7 +17,10 @@ import java.util.*
 object PersonalSettings {
     private const val fileName = "personal_settings.txt"
 
-    fun charCode() = File(fileName).readLines().find { it.startsWith("character_code") }!!.split(" ")[1]
+    fun charCode() = fetchWithKey("character_code")
+    fun storyFile() = fetchWithKey("story_file")
+
+    private fun fetchWithKey(key: String) = File(fileName).readLines().find { it.startsWith(key) }!!.split(" ")[1]
 }
 
 val armorSlots = setOf(Head, Body, Hands, Legs, Feet, Cowl, Stockings)
@@ -57,7 +60,8 @@ data class JobData(val level: Int = -1, val currentExp: Int = -1, val maxExp: In
 }
 
 fun getClasses(): List<JobData> =
-    fetchLevelDataFromWebsite().getAllListElements().filter { it.contains("character__job__exp") }.map { it.toJobData() }
+    fetchLevelDataFromWebsite().getAllListElements().filter { it.contains("character__job__exp") }
+        .map { it.toJobData() }
         .filter { it.level > 0 }
 
 fun String.getAllListElements(): List<String> {
@@ -115,8 +119,10 @@ fun main() {
 private fun showClassesAndLevels() {
     val jobs = getClasses()
     jobs.forEach(::println)
+    val textLength = File(PersonalSettings.storyFile()).readLines().indexOf("$$")
+    println()
     with(jobs.map { it.preciseLevel }) {
-        println("min %.3f".format(minOrNull()) + "/avg %.3f".format(average()))
+        println("lines $textLength/min %.3f".format(minOrNull()) + "/avg %.3f".format(average()))
     }
     readln()
 }
@@ -234,7 +240,7 @@ fun sanityCheckOverall(currentItems: List<Item>) {
     }
 }
 
-fun differentStatsUnder50(gear: List<Gear>) = gear.size > 1 && gear[0].level != 50 && gear.numDefenseValues() > 1
+fun differentStatsUnder50(gear: List<Gear>) = gear.size > 1 && gear[0].level < 50 && gear.numDefenseValues() > 1
 
 fun List<Gear>.numDefenseValues() = map { it.stats[Defense] }.distinct().size
 

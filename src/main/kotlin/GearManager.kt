@@ -2,7 +2,7 @@ import item.Gear
 import item.Item
 import item.Slot
 
-class GearManager(items: List<Item>, private val knownGear : MutableMap<Gear, Boolean>) {
+class GearManager(items: List<Item>, private val knownGear: MutableMap<Gear, Boolean>) {
     private val gear = items.filterIsInstance<Gear>()
 
     fun checkUsefulGear(jobLevels: List<Pair<Job, Int>>) {
@@ -30,7 +30,7 @@ class GearManager(items: List<Item>, private val knownGear : MutableMap<Gear, Bo
         if (item in knownGear.keys) return
         println(item)
         var answer = ""
-        while (answer != "h" && answer != "w") {
+        while (answer !in setOf("h", "w")) {
             println("have(h) or wish(w)?")
             answer = readln()
         }

@@ -5,6 +5,7 @@ import Job.*
 
 enum class ArmorType { Leather, Mail, Plate }
 
+// IMPORTANT! Adding a job here requires to also edit the JobRestrictions!
 enum class Job(val abbreviation: String, val jobType: JobType, val descendants: Set<Job> = setOf()) {
     Alchemist("ALC", CrafterJob()), Archer("ARC", DexterityJob()),
     Armorer("ARM", CrafterJob()), Astrologian("AST", HealerJob()),
@@ -15,7 +16,8 @@ enum class Job(val abbreviation: String, val jobType: JobType, val descendants: 
     Leatherworker("LTW", CrafterJob()), Machinist("MCH", DexterityJob()),
     Miner("MIN", GathererJob()), Marauder("MRD", TankJob()),
     Ninja("NIN", DexterityJob()), Paladin("PLD", TankJob()),
-    Pugilist("PGL", StrengthLeatherJob()), Scholar("SCH", HealerJob()),
+    Pugilist("PGL", StrengthLeatherJob()), RedMage("RDM", CasterJob()),
+    Scholar("SCH", HealerJob()),
     Summoner("SMN", CasterJob()), Thaumaturge("THM", CasterJob()),
     Weaver("WVR", CrafterJob()), WhiteMage("WHM", HealerJob()),
 
@@ -67,6 +69,7 @@ enum class JobRestriction(val abbreviation: String, val jobs: Set<Job>) {
     Marauder(Job.Marauder),
     Miner(Job.Miner),
     Pugilist(Job.Pugilist),
+    RedMage(Job.RedMage), // nasty duplication - how can that be better?
     Thaumaturge(Job.Thaumaturge),
     Rogue(Job.Rogue),
     Scholar(Job.Scholar),
